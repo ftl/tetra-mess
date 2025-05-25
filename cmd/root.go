@@ -38,16 +38,18 @@ func init() {
 }
 
 func Execute() {
-	if err := rootCmd.Execute(); err != nil {
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, os.Kill)
+	defer cancel()
+
+	if err := rootCmd.ExecuteContext(ctx); err != nil {
 		fatal(err)
 	}
 }
 
-func runCommandWithRadio(run func(context.Context, *com.COM, *cobra.Command, []string)) func(*cobra.Command, []string) {
+func runWithRadioAndTimeout(run func(context.Context, *com.COM, *cobra.Command, []string)) func(*cobra.Command, []string) {
 	return runWithRadio(func(ctx context.Context, radio *com.COM, cmd *cobra.Command, args []string) {
 		cmdCtx, cancel := context.WithTimeout(ctx, rootFlags.commandTimeout)
 		defer cancel()
-
 		run(cmdCtx, radio, cmd, args)
 	})
 }
@@ -84,8 +86,7 @@ func runWithRadio(run func(context.Context, *com.COM, *cobra.Command, []string))
 			defer tracePEIFile.Close()
 		}
 
-		rootCtx, interrupted := signal.NotifyContext(context.Background(), os.Interrupt)
-		defer interrupted()
+		rootCtx := cmd.Context()
 
 		var radio *com.COM
 		if tracePEIFile != nil {
@@ -133,6 +134,6 @@ func fatal(err error) {
 	os.Exit(1)
 }
 
-func fatalf(format string, args ...interface{}) {
+func fatalf(format string, args ...any) {
 	fatal(fmt.Errorf(format, args...))
 }

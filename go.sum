@@ -1,8 +1,8 @@
 github.com/cpuguy83/go-md2man/v2 v2.0.6/go.mod h1:oOW0eioCTA6cOiMLiUPZOpcVxMig6NIQQ7OS05n1F4g=
 github.com/davecgh/go-spew v1.1.0 h1:ZDRjVQ15GmhC3fiQ8ni8+OwkZQO4DARzQgrnXU1Liz8=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/ftl/tetra-pei v1.2.0 h1:clnolTTXkt7FxXBsMV5t/9+PjyqjJ1Mesz/i769RCyY=
-github.com/ftl/tetra-pei v1.2.0/go.mod h1:453EodcjNBl0H69jLq8qAj7YhH7ZOkAyvInFc5re0OI=
+github.com/ftl/tetra-pei v1.2.1 h1:Otnx3MvLdkN5HpJwTqUttEcTngzIhWnwh/2j/i0hS/4=
+github.com/ftl/tetra-pei v1.2.1/go.mod h1:453EodcjNBl0H69jLq8qAj7YhH7ZOkAyvInFc5re0OI=
 github.com/hedhyw/Go-Serial-Detector v1.0.0-rc1 h1:711NlOyZRHTfPCkK+ohh86eUPDL12Hi3MmGxtRkdKio=
 github.com/hedhyw/Go-Serial-Detector v1.0.0-rc1/go.mod h1:KHHkQDsf164J6M+mloiKeohRoEUF0Gbb2PjnB+I/nb8=
 github.com/inconshreveable/mousetrap v1.1.0 h1:wN+x4NVGpMsO7ErUn/mUI3vEoE6Jt13X2s0bqwp9tc8=
