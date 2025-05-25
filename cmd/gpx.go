@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/ftl/tetra-mess/pkg/data"
+	"github.com/ftl/tetra-mess/pkg/gpx"
 )
 
 var gpxFlags = struct {
@@ -45,12 +46,11 @@ func runGpx(cmd *cobra.Command, args []string) {
 			outputFilename = outputFilenameFor(inputFilename)
 		}
 
-		dataPoints, err := readInputFile(inputFilename)
+		err := processInputFile(inputFilename, outputFilename)
 		if err != nil {
-			cmd.PrintErrf("Error reading input file %s: %v\n", inputFilename, err)
+			cmd.PrintErrf("Error processing input file %s into %s: %v\n", inputFilename, outputFilename, err)
 			continue
 		}
-		cmd.Printf("read %d data points from %s to %s\n", len(dataPoints), inputFilename, outputFilename)
 	}
 }
 
@@ -63,6 +63,24 @@ func outputFilenameFor(inputFilename string) string {
 	base := filepath.Base(inputFilename)
 	filename := base[:len(base)-len(filepath.Ext(base))]
 	return filepath.Join(dir, filename+".gpx")
+}
+
+func processInputFile(inputFilename, outputFilename string) error {
+	outputFile, err := os.Create(outputFilename)
+	if err != nil {
+		return err
+	}
+	defer outputFile.Close()
+
+	dataPoints, err := readInputFile(inputFilename)
+	if err != nil {
+		return err
+	}
+	if len(dataPoints) == 0 {
+		return nil // nothing to do
+	}
+
+	return gpx.WriteAsGPX(outputFile, dataPoints)
 }
 
 func readInputFile(inputFilename string) ([]data.DataPoint, error) {
