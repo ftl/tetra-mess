@@ -6,27 +6,11 @@ import (
 
 	"github.com/ftl/tetra-pei/com"
 	"github.com/ftl/tetra-pei/ctrl"
+
+	"github.com/ftl/tetra-mess/pkg/data"
 )
 
-type CellInfo struct {
-	LAC  uint32
-	ID   uint32
-	RSSI int
-	CSNR int
-}
-
-type DataPoint struct {
-	Latitude   float64   `json:"lat"`
-	Longitude  float64   `json:"lon"`
-	Satellites int       `json:"sats"`
-	Timestamp  time.Time `json:"ts"`
-	LAC        uint32    `json:"lac"`
-	ID         uint32    `json:"id"`
-	RSSI       int       `json:"rssi"`
-	CSNR       int       `json:"csnr"`
-}
-
-func ScanSignalAndPosition(ctx context.Context, radio *com.COM) ([]DataPoint, error) {
+func ScanSignalAndPosition(ctx context.Context, radio *com.COM) ([]data.DataPoint, error) {
 	lat, lon, sats, timestamp, err := ctrl.RequestGPSPosition(ctx, radio)
 	if err != nil {
 		lat = 0
@@ -42,7 +26,7 @@ func ScanSignalAndPosition(ctx context.Context, radio *com.COM) ([]DataPoint, er
 
 	cellInfos, err := RequestCellListInformation(ctx, radio)
 	if err != nil {
-		return []DataPoint{{
+		return []data.DataPoint{{
 			Latitude:   lat,
 			Longitude:  lon,
 			Satellites: sats,
@@ -51,9 +35,9 @@ func ScanSignalAndPosition(ctx context.Context, radio *com.COM) ([]DataPoint, er
 		}}, nil
 	}
 
-	result := make([]DataPoint, 0, len(cellInfos))
+	result := make([]data.DataPoint, 0, len(cellInfos))
 	for _, cellInfo := range cellInfos {
-		dataPoint := DataPoint{
+		dataPoint := data.DataPoint{
 			Latitude:   lat,
 			Longitude:  lon,
 			Satellites: sats,

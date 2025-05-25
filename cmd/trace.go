@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -12,6 +11,7 @@ import (
 	"github.com/ftl/tetra-pei/com"
 	"github.com/spf13/cobra"
 
+	"github.com/ftl/tetra-mess/pkg/data"
 	"github.com/ftl/tetra-mess/pkg/scanner"
 )
 
@@ -106,12 +106,12 @@ func scan(ctx context.Context, radio *com.COM, out io.Writer, format TraceOutput
 		return
 	}
 
-	var encoder func(scanner.DataPoint) string
+	var encoder func(data.DataPoint) string
 	switch format {
 	case CSVOutput:
-		encoder = dataPointToCSV
+		encoder = data.DataPointToCSV
 	case JSONOutput:
-		encoder = dataPointToJSON
+		encoder = data.DataPointToJSON
 	default:
 		fatalf("unknown output format: %s", traceFlags.outputFormat)
 	}
@@ -130,23 +130,6 @@ func scan(ctx context.Context, radio *com.COM, out io.Writer, format TraceOutput
 	}
 }
 
-func isDataPointValid(dataPoint scanner.DataPoint) bool {
+func isDataPointValid(dataPoint data.DataPoint) bool {
 	return dataPoint.Satellites > 0 && dataPoint.RSSI != 99
-}
-
-func dataPointToCSV(dataPoint scanner.DataPoint) string {
-	return fmt.Sprintf("%s,%f,%f,%d,%d,%x,%d,%d",
-		dataPoint.Timestamp.Format(time.RFC3339),
-		dataPoint.Latitude,
-		dataPoint.Longitude,
-		dataPoint.Satellites,
-		dataPoint.LAC,
-		dataPoint.ID,
-		dataPoint.RSSI,
-		dataPoint.CSNR)
-}
-
-func dataPointToJSON(dataPoint scanner.DataPoint) string {
-	encoded, _ := json.Marshal(dataPoint)
-	return string(encoded)
 }

@@ -9,11 +9,13 @@ import (
 	"strings"
 
 	"github.com/ftl/tetra-pei/com"
+
+	"github.com/ftl/tetra-mess/pkg/data"
 )
 
 var cellListResponseHeader = regexp.MustCompile(`^\+GCLI: (\d+)$`)
 
-func RequestCellListInformation(ctx context.Context, radio *com.COM) ([]CellInfo, error) {
+func RequestCellListInformation(ctx context.Context, radio *com.COM) ([]data.CellInfo, error) {
 	response, err := radio.AT(ctx, "AT+GCLI?")
 	if err != nil {
 		return nil, err
@@ -34,7 +36,7 @@ func RequestCellListInformation(ctx context.Context, radio *com.COM) ([]CellInfo
 		return nil, fmt.Errorf("invalid response length: %d != %d", len(response), count+1)
 	}
 
-	result := make([]CellInfo, 0, count)
+	result := make([]data.CellInfo, 0, count)
 	for _, line := range response[1:] {
 		cellInfo, err := parseCellInfo(line)
 		if err != nil {
@@ -49,26 +51,26 @@ func RequestCellListInformation(ctx context.Context, radio *com.COM) ([]CellInfo
 
 var cellInfoLineExpression = regexp.MustCompile(`^(\d+),([abcdef0123456789]+),(-?\d+),(-?\d+)`)
 
-func parseCellInfo(line string) (CellInfo, error) {
+func parseCellInfo(line string) (data.CellInfo, error) {
 	line = strings.ToLower(strings.TrimSpace(line))
 	parts := cellInfoLineExpression.FindStringSubmatch(line)
 	if len(parts) != 5 {
-		return CellInfo{}, fmt.Errorf("invalid cell info line: %s", line)
+		return data.CellInfo{}, fmt.Errorf("invalid cell info line: %s", line)
 	}
 
 	lac, err := strconv.ParseUint(parts[1], 10, 32)
 	if err != nil {
-		return CellInfo{}, fmt.Errorf("invalid LAC: %w", err)
+		return data.CellInfo{}, fmt.Errorf("invalid LAC: %w", err)
 	}
 
 	id, err := strconv.ParseUint(parts[2], 16, 32)
 	if err != nil {
-		return CellInfo{}, fmt.Errorf("invalid ID: %w", err)
+		return data.CellInfo{}, fmt.Errorf("invalid ID: %w", err)
 	}
 
 	rawRSSI, err := strconv.Atoi(parts[3])
 	if err != nil {
-		return CellInfo{}, fmt.Errorf("invalid RSSI: %w", err)
+		return data.CellInfo{}, fmt.Errorf("invalid RSSI: %w", err)
 	}
 	var rssi int
 	if rawRSSI != 99 {
@@ -79,10 +81,10 @@ func parseCellInfo(line string) (CellInfo, error) {
 
 	csnr, err := strconv.Atoi(parts[4])
 	if err != nil {
-		return CellInfo{}, fmt.Errorf("invalid CSNR: %w", err)
+		return data.CellInfo{}, fmt.Errorf("invalid CSNR: %w", err)
 	}
 
-	return CellInfo{
+	return data.CellInfo{
 		LAC:  uint32(lac),
 		ID:   uint32(id),
 		RSSI: rssi,

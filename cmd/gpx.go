@@ -1,6 +1,13 @@
 package cmd
 
-import "github.com/spf13/cobra"
+import (
+	"os"
+	"path/filepath"
+
+	"github.com/spf13/cobra"
+
+	"github.com/ftl/tetra-mess/pkg/data"
+)
 
 var gpxFlags = struct {
 	lac            string
@@ -31,4 +38,39 @@ func runGpx(cmd *cobra.Command, args []string) {
 		cmd.Help()
 		return
 	}
+
+	for _, inputFilename := range args {
+		outputFilename := gpxFlags.outputFilename
+		if gpxFlags.outputFilename == "" {
+			outputFilename = outputFilenameFor(inputFilename)
+		}
+
+		dataPoints, err := readInputFile(inputFilename)
+		if err != nil {
+			cmd.PrintErrf("Error reading input file %s: %v\n", inputFilename, err)
+			continue
+		}
+		cmd.Printf("read %d data points from %s to %s\n", len(dataPoints), inputFilename, outputFilename)
+	}
+}
+
+func outputFilenameFor(inputFilename string) string {
+	if inputFilename == "" {
+		panic("input filename cannot be empty")
+	}
+
+	dir := filepath.Dir(inputFilename)
+	base := filepath.Base(inputFilename)
+	filename := base[:len(base)-len(filepath.Ext(base))]
+	return filepath.Join(dir, filename+".gpx")
+}
+
+func readInputFile(inputFilename string) ([]data.DataPoint, error) {
+	file, err := os.Open(inputFilename)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	return data.ReadDataPoints(file)
 }
