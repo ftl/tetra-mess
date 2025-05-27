@@ -9,12 +9,15 @@ import (
 	"github.com/ftl/tetra-mess/pkg/data"
 )
 
-func WriteAsGPX(out io.Writer, dataPoints []data.DataPoint) error {
+func WriteDataPointsAsGPX(out io.Writer, name string, dataPoints []data.DataPoint) error {
+	waypoints := dataPointsToGPXPoints(dataPoints)
 	track := dataPointsToGPXTrack(dataPoints)
 	result := gpx.GPX{
-		Version: "1.1",
-		Creator: "tetra-mess",
-		Tracks:  []gpx.GPXTrack{track},
+		Version:   "1.1",
+		Creator:   "tetra-mess",
+		Name:      name,
+		Tracks:    []gpx.GPXTrack{track},
+		Waypoints: waypoints,
 	}
 
 	bytes, err := gpx.ToXml(&result, gpx.ToXmlParams{
@@ -34,16 +37,9 @@ func WriteAsGPX(out io.Writer, dataPoints []data.DataPoint) error {
 }
 
 func dataPointsToGPXTrack(dataPoints []data.DataPoint) gpx.GPXTrack {
+	gpxPoints := dataPointsToGPXPoints(dataPoints)
 	segment := gpx.GPXTrackSegment{
-		Points: make([]gpx.GPXPoint, 0, len(dataPoints)),
-	}
-	for _, dataPoint := range dataPoints {
-		if dataPoint.Latitude == 0 && dataPoint.Longitude == 0 {
-			continue // Skip points without valid coordinates
-		}
-
-		point := dataPointToGPXPoint(dataPoint)
-		segment.Points = append(segment.Points, point)
+		Points: gpxPoints,
 	}
 
 	track := gpx.GPXTrack{
@@ -56,14 +52,27 @@ func dataPointsToGPXTrack(dataPoints []data.DataPoint) gpx.GPXTrack {
 	return track
 }
 
+func dataPointsToGPXPoints(dataPoints []data.DataPoint) []gpx.GPXPoint {
+	result := make([]gpx.GPXPoint, 0, len(dataPoints))
+	for _, dataPoint := range dataPoints {
+		if dataPoint.Latitude == 0 && dataPoint.Longitude == 0 {
+			continue // Skip points without valid coordinates
+		}
+
+		point := dataPointToGPXPoint(dataPoint)
+		result = append(result, point)
+	}
+	return result
+}
+
 func dataPointToGPXPoint(dataPoint data.DataPoint) gpx.GPXPoint {
 	result := gpx.GPXPoint{
 		Point: gpx.Point{
 			Latitude:  dataPoint.Latitude,
 			Longitude: dataPoint.Longitude,
 		},
-		Name:        fmt.Sprintf("%ddBm C %d", dataPoint.RSSI, dataPoint.CSNR),
-		Description: fmt.Sprintf("LAC: %d, ID: %d", dataPoint.LAC, dataPoint.ID),
+		Name:        fmt.Sprintf("%d/%x %ddBm", dataPoint.LAC, dataPoint.LAC, dataPoint.RSSI),
+		Description: fmt.Sprintf("LAC: %d\nID: %x\nRSSI: %ddBm\nCSNR: %d", dataPoint.LAC, dataPoint.ID, dataPoint.RSSI, dataPoint.CSNR),
 		Timestamp:   dataPoint.Timestamp,
 	}
 	result.Satellites.SetValue(dataPoint.Satellites)

@@ -80,7 +80,7 @@ func processInputFile(inputFilename, outputFilename string) error {
 		return nil // nothing to do
 	}
 
-	return gpx.WriteAsGPX(outputFile, dataPoints)
+	return gpx.WriteDataPointsAsGPX(outputFile, outputFilename, dataPoints)
 }
 
 func readInputFile(inputFilename string) ([]data.DataPoint, error) {
