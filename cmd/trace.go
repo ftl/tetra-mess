@@ -116,7 +116,7 @@ func scan(ctx context.Context, radio *com.COM, out io.Writer, format TraceOutput
 		fatalf("unknown output format: %s", traceFlags.outputFormat)
 	}
 	for _, dataPoint := range datapoints {
-		if onlyValid && !isDataPointValid(dataPoint) {
+		if onlyValid && !dataPoint.IsValid() {
 			continue
 		}
 
@@ -128,8 +128,4 @@ func scan(ctx context.Context, radio *com.COM, out io.Writer, format TraceOutput
 			return
 		}
 	}
-}
-
-func isDataPointValid(dataPoint data.DataPoint) bool {
-	return dataPoint.Satellites > 0 && dataPoint.RSSI != 99
 }

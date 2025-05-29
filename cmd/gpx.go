@@ -40,13 +40,35 @@ func runGpx(cmd *cobra.Command, args []string) {
 		return
 	}
 
+	var filter data.Filter
+	var err error
+	var value uint32
+	switch {
+	case gpxFlags.lac != "":
+		value, err = data.ParseDecOrHex(gpxFlags.lac)
+		if err == nil {
+			filter = data.FilterByLAC(value)
+		}
+	case gpxFlags.id != "":
+		value, err = data.ParseDecOrHex(gpxFlags.id)
+		if err == nil {
+			filter = data.FilterByID(value)
+		}
+	default:
+		filter = data.FilterBestServer()
+	}
+	if err != nil {
+		cmd.PrintErrf("Error parsing filter value: %v\n", err)
+		return
+	}
+
 	for _, inputFilename := range args {
 		outputFilename := gpxFlags.outputFilename
 		if gpxFlags.outputFilename == "" {
 			outputFilename = outputFilenameFor(inputFilename)
 		}
 
-		err := processInputFile(inputFilename, outputFilename)
+		err := processInputFile(inputFilename, outputFilename, filter)
 		if err != nil {
 			cmd.PrintErrf("Error processing input file %s into %s: %v\n", inputFilename, outputFilename, err)
 			continue
@@ -65,7 +87,7 @@ func outputFilenameFor(inputFilename string) string {
 	return filepath.Join(dir, filename+".gpx")
 }
 
-func processInputFile(inputFilename, outputFilename string) error {
+func processInputFile(inputFilename, outputFilename string, filter data.Filter) error {
 	outputFile, err := os.Create(outputFilename)
 	if err != nil {
 		return err
@@ -79,6 +101,8 @@ func processInputFile(inputFilename, outputFilename string) error {
 	if len(dataPoints) == 0 {
 		return nil // nothing to do
 	}
+
+	dataPoints = filter.Filter(dataPoints)
 
 	return gpx.WriteDataPointsAsGPX(outputFile, outputFilename, dataPoints)
 }

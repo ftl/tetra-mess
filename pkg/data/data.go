@@ -1,6 +1,13 @@
 package data
 
-import "time"
+import (
+	"crypto/md5"
+	"encoding/hex"
+	"fmt"
+	"time"
+)
+
+var ZeroDataPoint = DataPoint{}
 
 type CellInfo struct {
 	LAC  uint32
@@ -18,4 +25,18 @@ type DataPoint struct {
 	ID         uint32    `json:"id"`
 	RSSI       int       `json:"rssi"`
 	CSNR       int       `json:"csnr"`
+}
+
+func (dp DataPoint) IsZero() bool {
+	return dp == ZeroDataPoint
+}
+
+func (dp DataPoint) IsValid() bool {
+	return dp.Satellites > 0 && dp.RSSI != 99
+}
+
+func (dp DataPoint) TimeAndSpace() string {
+	data := fmt.Sprintf("%f-%f-%s", dp.Latitude, dp.Longitude, dp.Timestamp.Format(time.RFC3339))
+	hash := md5.Sum([]byte(data))
+	return hex.EncodeToString(hash[:])
 }
