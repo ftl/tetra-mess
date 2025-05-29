@@ -66,13 +66,14 @@ func dataPointsToGPXPoints(dataPoints []data.DataPoint) []gpx.GPXPoint {
 }
 
 func dataPointToGPXPoint(dataPoint data.DataPoint) gpx.GPXPoint {
+	gan := data.RSSIToGAN(dataPoint.RSSI)
 	result := gpx.GPXPoint{
 		Point: gpx.Point{
 			Latitude:  dataPoint.Latitude,
 			Longitude: dataPoint.Longitude,
 		},
 		Name:        fmt.Sprintf("%d/%x %ddBm", dataPoint.LAC, dataPoint.LAC, dataPoint.RSSI),
-		Description: fmt.Sprintf("LAC: %d\nID: %x\nRSSI: %ddBm\nCSNR: %d", dataPoint.LAC, dataPoint.ID, dataPoint.RSSI, dataPoint.CSNR),
+		Description: fmt.Sprintf("LAC: %d\nID: %x\nRSSI: %ddBm\nCSNR: %d\nGAN: %d", dataPoint.LAC, dataPoint.ID, dataPoint.RSSI, dataPoint.CSNR, gan),
 		Timestamp:   dataPoint.Timestamp,
 	}
 	result.Satellites.SetValue(dataPoint.Satellites)

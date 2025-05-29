@@ -7,6 +7,8 @@ import (
 	"time"
 )
 
+const NoSignal = 99
+
 var ZeroDataPoint = DataPoint{}
 
 type CellInfo struct {
@@ -32,11 +34,32 @@ func (dp DataPoint) IsZero() bool {
 }
 
 func (dp DataPoint) IsValid() bool {
-	return dp.Satellites > 0 && dp.RSSI != 99
+	return dp.Satellites > 0 && dp.RSSI != NoSignal
 }
 
 func (dp DataPoint) TimeAndSpace() string {
 	data := fmt.Sprintf("%f-%f-%s", dp.Latitude, dp.Longitude, dp.Timestamp.Format(time.RFC3339))
 	hash := md5.Sum([]byte(data))
 	return hex.EncodeToString(hash[:])
+}
+
+func RSSIToGAN(rssi int) int {
+	switch {
+	case rssi == NoSignal:
+		return -3
+	case rssi < -103:
+		return -2
+	case rssi < -97:
+		return -1
+	case rssi < -94:
+		return 0
+	case rssi < -88:
+		return 1
+	case rssi < -85:
+		return 2
+	case rssi < -79:
+		return 3
+	default:
+		return 4
+	}
 }

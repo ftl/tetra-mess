@@ -73,10 +73,10 @@ func parseCellInfo(line string) (data.CellInfo, error) {
 		return data.CellInfo{}, fmt.Errorf("invalid RSSI: %w", err)
 	}
 	var rssi int
-	if rawRSSI != 99 {
+	if rawRSSI != data.NoSignal {
 		rssi = -113 + (rawRSSI * 2)
 	} else {
-		rssi = 99
+		rssi = data.NoSignal
 	}
 
 	csnr, err := strconv.Atoi(parts[4])
