@@ -66,6 +66,9 @@ func bestServerAtTimeAndSpace(dataPoints []DataPoint) DataPoint {
 			result = dataPoint
 		}
 	}
+	if !result.IsValid() {
+		return ZeroDataPoint
+	}
 	return result
 }
 
