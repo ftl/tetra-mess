@@ -20,6 +20,10 @@ var evalFlags = struct {
 	outputFormat   string
 }{}
 
+var evalTrackFlags = struct {
+	name string
+}{}
+
 var evalCmd = &cobra.Command{
 	Use:   "eval",
 	Short: "Evaluate a signal trace file",
@@ -41,11 +45,13 @@ func init() {
 	evalCmd.PersistentFlags().StringVar(&evalFlags.outputFilename, "output", "", "output filename")
 	evalCmd.PersistentFlags().StringVar(&evalFlags.outputFormat, "format", "kml", "output format (gpx, kml)")
 
+	evalTrackCmd.Flags().StringVar(&evalTrackFlags.name, "name", "", "a name for the track (default: derived from the input filename)")
+
 	evalCmd.AddCommand(evalTrackCmd)
 	rootCmd.AddCommand(evalCmd)
 }
 
-type trackWriter func(out io.Writer, name string, dataPoints []data.DataPoint) error
+type trackWriter func(out io.Writer, trackname string, dataPoints []data.DataPoint) error
 
 func runEvalTrack(cmd *cobra.Command, args []string) {
 	if len(args) == 0 {
@@ -92,7 +98,12 @@ func runEvalTrack(cmd *cobra.Command, args []string) {
 			outputFilename = outputFilenameFor(inputFilename, evalFlags.outputFormat)
 		}
 
-		err := processInputFile(inputFilename, outputFilename, filter, writeTrack)
+		trackname := evalTrackFlags.name
+		if trackname == "" {
+			trackname = filepath.Base(inputFilename)
+		}
+
+		err := processInputFile(inputFilename, outputFilename, trackname, filter, writeTrack)
 		if err != nil {
 			cmd.PrintErrf("Error processing input file %s into %s: %v\n", inputFilename, outputFilename, err)
 			continue
@@ -111,7 +122,7 @@ func outputFilenameFor(inputFilename string, formatExtension string) string {
 	return filepath.Join(dir, filename+"."+formatExtension)
 }
 
-func processInputFile(inputFilename, outputFilename string, filter data.Filter, writeTrack trackWriter) error {
+func processInputFile(inputFilename, outputFilename string, trackname string, filter data.Filter, writeTrack trackWriter) error {
 	outputFile, err := os.Create(outputFilename)
 	if err != nil {
 		return err
@@ -128,7 +139,7 @@ func processInputFile(inputFilename, outputFilename string, filter data.Filter, 
 
 	dataPoints = filter.Filter(dataPoints)
 
-	return writeTrack(outputFile, outputFilename, dataPoints)
+	return writeTrack(outputFile, trackname, dataPoints)
 }
 
 func readInputFile(inputFilename string) ([]data.DataPoint, error) {
