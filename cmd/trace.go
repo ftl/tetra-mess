@@ -6,6 +6,8 @@ import (
 	"io"
 	"log"
 	"os"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/ftl/tetra-pei/com"
@@ -20,20 +22,19 @@ const defaultTraceScanInterval = 10 * time.Second
 var traceFlags = struct {
 	scanInterval   time.Duration
 	outputFilename string
-	outputFormat   string
 	onlyValid      bool
 }{}
 
 var traceCmd = &cobra.Command{
-	Use:   "trace",
+	Use:   "trace [output filename]",
 	Short: "Trace the signal strength and the GPS position and save it to a file",
-	Run:   runWithRadio(runTrace), // do not use runWithRadioAndTimeout here, because we want to run the command indefinitely
+	Long: `Trace the signal strength and the GPS position and save it to a file
+The output file can be in CSV or JSON format, depending on the file extension.`,
+	Run: runWithRadio(runTrace), // do not use runWithRadioAndTimeout here, because we want to run the command indefinitely
 }
 
 func init() {
 	traceCmd.Flags().DurationVar(&traceFlags.scanInterval, "scan-interval", defaultTraceScanInterval, "scan interval")
-	traceCmd.Flags().StringVar(&traceFlags.outputFilename, "output", "", "output filename")
-	traceCmd.Flags().StringVar(&traceFlags.outputFormat, "format", "csv", "output format (csv, json)")
 	traceCmd.Flags().BoolVar(&traceFlags.onlyValid, "only-valid", false, "output only valid data points (with GPS position and RSSI/CSNR values)")
 
 	traceCmd.Flags().MarkHidden("output")
@@ -42,17 +43,14 @@ func init() {
 }
 
 func runTrace(ctx context.Context, radio *com.COM, cmd *cobra.Command, args []string) {
-	err := radio.ATs(ctx,
-		"ATZ",
-		"ATE0",
-		"AT+CSCS=8859-1",
-	)
-	if err != nil {
-		fatalf("cannot initilize radio: %v", err)
+	if len(args) != 1 {
+		cmd.Help()
+		return
 	}
 
+	outputFilename := args[0]
 	var out io.Writer
-	if traceFlags.outputFilename != "" {
+	if outputFilename != "" {
 		file, err := os.Create(traceFlags.outputFilename)
 		if err != nil {
 			fatalf("cannot create output file %s: %v", traceFlags.outputFilename, err)
@@ -61,8 +59,28 @@ func runTrace(ctx context.Context, radio *com.COM, cmd *cobra.Command, args []st
 	} else {
 		out = os.Stdout
 	}
-	format := TraceOutputFormat(traceFlags.outputFormat)
+
+	format := TraceOutputFormat(strings.ToLower(filepath.Ext(outputFilename)))
+	var encoder func(data.DataPoint) string
+	switch format {
+	case "csv":
+		encoder = data.DataPointToCSV
+	case "json":
+		encoder = data.DataPointToJSON
+	default:
+		fatalf("unknown output format: %s", format)
+	}
+
 	onlyValid := traceFlags.onlyValid
+
+	err := radio.ATs(ctx,
+		"ATZ",
+		"ATE0",
+		"AT+CSCS=8859-1",
+	)
+	if err != nil {
+		fatalf("cannot initilize radio: %v", err)
+	}
 
 	closed := make(chan struct{})
 	go func() {
@@ -76,7 +94,7 @@ func runTrace(ctx context.Context, radio *com.COM, cmd *cobra.Command, args []st
 			case <-ctx.Done():
 				return
 			case <-scanTicker.C:
-				scan(ctx, radio, out, format, onlyValid)
+				scan(ctx, radio, out, encoder, onlyValid)
 			}
 		}
 	}()
@@ -94,27 +112,13 @@ func runTrace(ctx context.Context, radio *com.COM, cmd *cobra.Command, args []st
 
 type TraceOutputFormat string
 
-const (
-	CSVOutput  TraceOutputFormat = "csv"
-	JSONOutput TraceOutputFormat = "json"
-)
-
-func scan(ctx context.Context, radio *com.COM, out io.Writer, format TraceOutputFormat, onlyValid bool) {
+func scan(ctx context.Context, radio *com.COM, out io.Writer, encoder func(data.DataPoint) string, onlyValid bool) {
 	datapoints, err := scanner.ScanSignalAndPosition(ctx, radio)
 	if err != nil {
 		log.Printf("error scanning signal and position: %v", err) // TODO: write to stderr
 		return
 	}
 
-	var encoder func(data.DataPoint) string
-	switch format {
-	case CSVOutput:
-		encoder = data.DataPointToCSV
-	case JSONOutput:
-		encoder = data.DataPointToJSON
-	default:
-		fatalf("unknown output format: %s", traceFlags.outputFormat)
-	}
 	for _, dataPoint := range datapoints {
 		if onlyValid && !dataPoint.IsValid() {
 			continue
