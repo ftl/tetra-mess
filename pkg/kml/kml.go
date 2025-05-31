@@ -8,9 +8,11 @@ import (
 	"github.com/twpayne/go-kml/v3"
 
 	"github.com/ftl/tetra-mess/pkg/data"
+	"github.com/ftl/tetra-mess/pkg/quality"
 )
 
 var (
+	NoGANColor     = color.RGBA{R: 0, G: 0, B: 0, A: 255}
 	GANMinus2Color = color.RGBA{R: 139, G: 0, B: 0, A: 255}
 	GANMinus1Color = color.RGBA{R: 220, G: 20, B: 60, A: 255}
 	GAN0Color      = color.RGBA{R: 255, G: 140, B: 0, A: 255}
@@ -70,6 +72,98 @@ func dataPointToKMLPlacemark(dataPoint data.DataPoint) kml.Element {
 	)
 }
 
+func WriteFieldReportsAsKML(out io.Writer, name string, fieldReports []quality.FieldReport) error {
+	elements := make([]kml.Element, 0, len(fieldReports)+9)
+	elements = append(elements,
+		kml.Name(name),
+	)
+	for gan := data.NoGAN; gan <= 4; gan++ {
+		styleID := fmt.Sprintf("gan%d-style", gan)
+		style := kml.Style(
+			kml.PolyStyle(
+				kml.Color(ganToColor(gan)),
+				kml.Fill(true),
+			),
+		).WithID(styleID)
+		elements = append(elements, style)
+	}
+	elements = append(elements, fieldReportsToKMLPlacemarks(fieldReports)...)
+
+	doc := kml.KML(
+		kml.Document(elements...),
+	)
+
+	return doc.WriteIndent(out, "", "  ")
+}
+
+func fieldReportsToKMLPlacemarks(fieldReports []quality.FieldReport) []kml.Element {
+	result := make([]kml.Element, 0, len(fieldReports))
+	for _, fieldStat := range fieldReports {
+		minLat, minLon, maxLat, maxLon := fieldStat.Area()
+		if minLat == 0 && minLon == 0 && maxLat == 0 && maxLon == 0 {
+			continue // Skip fields without valid area
+		}
+		avgGAN := data.RSSIToGAN(fieldStat.AverageRSSI())
+		styleURL := fmt.Sprintf("#gan%d-style", avgGAN)
+		placemark := kml.Placemark(
+			kml.Name(fmt.Sprintf("Field %s", fieldStat.Field.FieldID())),
+			kml.Description(fieldReportDescription(fieldStat)),
+			kml.StyleURL(styleURL),
+			kml.Polygon(
+				kml.OuterBoundaryIs(
+					kml.LinearRing(
+						kml.Coordinates(
+							kml.Coordinate{Lat: maxLat, Lon: minLon},
+							kml.Coordinate{Lat: minLat, Lon: minLon},
+							kml.Coordinate{Lat: minLat, Lon: maxLon},
+							kml.Coordinate{Lat: maxLat, Lon: maxLon},
+							kml.Coordinate{Lat: maxLat, Lon: minLon},
+						),
+					),
+				),
+			),
+		)
+
+		result = append(result, placemark)
+	}
+	return result
+}
+
+func fieldReportDescription(fieldReports quality.FieldReport) string {
+	var result string
+	result += fmt.Sprintf(`<table>
+<tr><th>UTM Field</th><td>%s</td></tr>
+<tr><th>Avg RSSI</th><td>%ddBm</td></tr>
+<tr><th>Avg GAN</th><td>%d</td></tr>
+<tr><th>Avg SLD</th><td>%ddB</td></tr>
+</table><br/>`,
+		fieldReports.Field.FieldID(),
+		fieldReports.AverageRSSI(),
+		fieldReports.AverageGAN(),
+		fieldReports.AverageSignalLevelDifference(),
+	)
+	result += fmt.Sprintf(`<table>
+<tr>
+<th>LAC</th>
+<th>Avg RSSI</th>
+<th>Avg GAN</th>
+<th>Min RSSI</th>
+<th>Max RSSI</th>
+</tr>`)
+	for _, lacStats := range fieldReports.LACReportsByRSSI() {
+		result += fmt.Sprintf(`<tr><td>%d</td><td>%d</td><td>%d</td><td>%d</td><td>%d</td></tr>`,
+			lacStats.LAC,
+			lacStats.AverageRSSI(),
+			lacStats.AverageGAN(),
+			lacStats.MinRSSI,
+			lacStats.MaxRSSI,
+		)
+	}
+	result += `</table><br/>`
+
+	return result
+}
+
 func ganToColor(gan int) color.Color {
 	colors := []color.Color{
 		GANMinus2Color,
@@ -80,8 +174,8 @@ func ganToColor(gan int) color.Color {
 		GAN3Color,
 		GAN4Color,
 	}
-	if gan < -2 || gan > 4 {
-		return color.Black
+	if gan <= data.NoGAN || gan > 4 {
+		return NoGANColor
 	}
 	return colors[gan+2]
 }
