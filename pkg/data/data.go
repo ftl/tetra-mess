@@ -12,7 +12,19 @@ import (
 const NoSignal = 99
 const NoGAN = -3
 
+var NoPosition = Position{}
 var ZeroDataPoint = DataPoint{}
+
+type Position struct {
+	Latitude   float64
+	Longitude  float64
+	Satellites int
+	Timestamp  time.Time
+}
+
+func (p Position) ToUTMField() UTMField {
+	return NewUTMField(p.Latitude, p.Longitude)
+}
 
 type CellInfo struct {
 	LAC  uint32

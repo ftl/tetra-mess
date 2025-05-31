@@ -94,7 +94,7 @@ func runTrace(ctx context.Context, radio *com.COM, cmd *cobra.Command, args []st
 			case <-ctx.Done():
 				return
 			case <-scanTicker.C:
-				scan(ctx, radio, out, encoder, onlyValid)
+				scanForTrace(ctx, radio, out, encoder, onlyValid)
 			}
 		}
 	}()
@@ -112,8 +112,8 @@ func runTrace(ctx context.Context, radio *com.COM, cmd *cobra.Command, args []st
 
 type TraceOutputFormat string
 
-func scan(ctx context.Context, radio *com.COM, out io.Writer, encoder func(data.DataPoint) string, onlyValid bool) {
-	datapoints, err := scanner.ScanSignalAndPosition(ctx, radio)
+func scanForTrace(ctx context.Context, radio *com.COM, out io.Writer, encoder func(data.DataPoint) string, onlyValid bool) {
+	_, datapoints, err := scanner.ScanSignalAndPosition(ctx, radio)
 	if err != nil {
 		log.Printf("error scanning signal and position: %v", err) // TODO: write to stderr
 		return

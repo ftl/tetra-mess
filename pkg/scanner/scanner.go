@@ -10,13 +10,20 @@ import (
 	"github.com/ftl/tetra-mess/pkg/data"
 )
 
-func ScanSignalAndPosition(ctx context.Context, radio *com.COM) ([]data.DataPoint, error) {
+func ScanSignalAndPosition(ctx context.Context, radio *com.COM) (data.Position, []data.DataPoint, error) {
 	lat, lon, sats, timestamp, err := ctrl.RequestGPSPosition(ctx, radio)
 	if err != nil {
 		lat = 0
 		lon = 0
 		sats = 0
 		timestamp = time.Now().UTC()
+	}
+
+	position := data.Position{
+		Latitude:   lat,
+		Longitude:  lon,
+		Satellites: sats,
+		Timestamp:  timestamp,
 	}
 
 	dbm, err := ctrl.RequestSignalStrength(ctx, radio)
@@ -26,16 +33,17 @@ func ScanSignalAndPosition(ctx context.Context, radio *com.COM) ([]data.DataPoin
 
 	cellInfos, err := RequestCellListInformation(ctx, radio)
 	if err != nil {
-		return []data.DataPoint{{
-			Latitude:   lat,
-			Longitude:  lon,
-			Satellites: sats,
-			Timestamp:  timestamp,
-			RSSI:       dbm,
-		}}, nil
+		return position,
+			[]data.DataPoint{{
+				Latitude:   lat,
+				Longitude:  lon,
+				Satellites: sats,
+				Timestamp:  timestamp,
+				RSSI:       dbm,
+			}}, nil
 	}
 
-	result := make([]data.DataPoint, 0, len(cellInfos))
+	dataPoints := make([]data.DataPoint, 0, len(cellInfos))
 	for _, cellInfo := range cellInfos {
 		dataPoint := data.DataPoint{
 			Latitude:   lat,
@@ -47,7 +55,7 @@ func ScanSignalAndPosition(ctx context.Context, radio *com.COM) ([]data.DataPoin
 			RSSI:       cellInfo.RSSI,
 			CSNR:       cellInfo.CSNR,
 		}
-		result = append(result, dataPoint)
+		dataPoints = append(dataPoints, dataPoint)
 	}
-	return result, nil
+	return position, dataPoints, nil
 }

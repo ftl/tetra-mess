@@ -16,6 +16,12 @@ func NewQualityReport() *QualityReport {
 	}
 }
 
+func (a *QualityReport) AddMeasurement(measurement Measurement) {
+	for _, dataPoint := range measurement.dataPoints {
+		a.Add(dataPoint)
+	}
+}
+
 func (a *QualityReport) Add(dataPoint data.DataPoint) {
 	fieldID := dataPoint.UTMField().FieldID()
 
@@ -33,6 +39,14 @@ func (a *QualityReport) FieldReports() []FieldReport {
 		stats = append(stats, *field)
 	}
 	return stats
+}
+
+func (a *QualityReport) FieldReportByUTM(utmField data.UTMField) FieldReport {
+	result, ok := a.fieldsByUTM[utmField.FieldID()]
+	if !ok {
+		return FieldReport{Field: utmField}
+	}
+	return *result
 }
 
 type FieldReport struct {
@@ -172,6 +186,21 @@ func (s *LACReport) Add(dataPoint data.DataPoint) {
 	}
 }
 
+func (c *LACReport) CurrentRSSI() int {
+	if len(c.rssi) == 0 {
+		return data.NoSignal
+	}
+	return c.rssi[len(c.rssi)-1]
+}
+
+func (s *LACReport) CurrentGAN() int {
+	currentRSSI := s.CurrentRSSI()
+	if currentRSSI == data.NoSignal {
+		return data.NoGAN
+	}
+	return data.RSSIToGAN(currentRSSI)
+}
+
 func (s *LACReport) AverageRSSI() int {
 	if len(s.rssi) == 0 {
 		return data.NoSignal
@@ -197,12 +226,31 @@ type Measurement struct {
 	dataPoints []data.DataPoint
 }
 
-func (m *Measurement) Add(dataPoint data.DataPoint) {
-	if dataPoint.MeasurementID() != m.ID {
-		return
+func (m *Measurement) Add(dataPoints ...data.DataPoint) {
+	if len(dataPoints) > 0 && m.ID == "" && len(m.dataPoints) == 0 {
+		m.ID = dataPoints[0].MeasurementID()
 	}
-	m.dataPoints = append(m.dataPoints, dataPoint)
-	m.dataPoints = data.SortByRSSI(m.dataPoints)
+	for _, dataPoint := range dataPoints {
+		if dataPoint.MeasurementID() != m.ID {
+			return
+		}
+		m.dataPoints = append(m.dataPoints, dataPoint)
+		m.dataPoints = data.SortByRSSI(m.dataPoints)
+	}
+}
+
+func (m *Measurement) BestServer() data.DataPoint {
+	if len(m.dataPoints) == 0 {
+		return data.ZeroDataPoint
+	}
+	return m.dataPoints[0]
+}
+
+func (m *Measurement) SecondServer() data.DataPoint {
+	if len(m.dataPoints) < 2 {
+		return data.ZeroDataPoint
+	}
+	return m.dataPoints[1]
 }
 
 func (m *Measurement) BestRSSI() int {
