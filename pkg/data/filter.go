@@ -40,7 +40,7 @@ func FilterBestServer() Filter {
 	return FilterFunc(func(dataPoints []DataPoint) []DataPoint {
 		byTimeAndSpace := make(map[string][]DataPoint)
 		for _, dataPoint := range dataPoints {
-			key := dataPoint.TimeAndSpace()
+			key := dataPoint.MeasurementID()
 			byTimeAndSpace[key] = append(byTimeAndSpace[key], dataPoint)
 		}
 
@@ -79,6 +79,27 @@ func SortByTimestamp(dataPoints []DataPoint) []DataPoint {
 	return dataPoints
 }
 
+func SortByRSSI(dataPoints []DataPoint) []DataPoint {
+	// best server first
+	slices.SortFunc(dataPoints, func(i, j DataPoint) int {
+		return SortRSSI(j.RSSI, i.RSSI, int(i.Timestamp.Sub(j.Timestamp).Seconds()))
+	})
+	return dataPoints
+}
+
+func SortRSSI(rssi1, rssi2, alt int) int {
+	if rssi1 == NoSignal && rssi2 == NoSignal {
+		return alt // both are no signal
+	}
+	if rssi1 == NoSignal {
+		return -1 // rssi1 is better
+	}
+	if rssi2 == NoSignal {
+		return 1 // rssi2 is better
+	}
+	return rssi1 - rssi2
+}
+
 func MapByUTMField(dataPoints []DataPoint) map[string][]DataPoint {
 	result := make(map[string][]DataPoint)
 	for _, dataPoint := range dataPoints {
@@ -89,10 +110,10 @@ func MapByUTMField(dataPoints []DataPoint) map[string][]DataPoint {
 	return result
 }
 
-func MapByTimeAndSpace(dataPoints []DataPoint) map[string][]DataPoint {
+func MapByMeasurement(dataPoints []DataPoint) map[string][]DataPoint {
 	result := make(map[string][]DataPoint)
 	for _, dataPoint := range dataPoints {
-		key := dataPoint.TimeAndSpace()
+		key := dataPoint.MeasurementID()
 		result[key] = append(result[key], dataPoint)
 	}
 	return result

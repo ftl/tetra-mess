@@ -167,7 +167,7 @@ func runEvalQuality(cmd *cobra.Command, args []string) {
 		return
 	}
 	defer outputFile.Close()
-	kml.WriteFieldStatsAsKML(outputFile, name, fieldReports)
+	kml.WriteFieldReportsAsKML(outputFile, name, fieldReports)
 }
 
 func processQualityInputFile(inputFilename string, qualityReport *quality.QualityReport) error {

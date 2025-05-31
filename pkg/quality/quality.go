@@ -1,6 +1,10 @@
 package quality
 
-import "github.com/ftl/tetra-mess/pkg/data"
+import (
+	"slices"
+
+	"github.com/ftl/tetra-mess/pkg/data"
+)
 
 type QualityReport struct {
 	fieldsByUTM map[string]*FieldReport
@@ -13,12 +17,12 @@ func NewQualityReport() *QualityReport {
 }
 
 func (a *QualityReport) Add(dataPoint data.DataPoint) {
-	fieldKey := dataPoint.UTMField().FieldID()
+	fieldID := dataPoint.UTMField().FieldID()
 
-	field, ok := a.fieldsByUTM[fieldKey]
+	field, ok := a.fieldsByUTM[fieldID]
 	if !ok {
 		field = NewFieldReport(dataPoint.UTMField())
-		a.fieldsByUTM[fieldKey] = field
+		a.fieldsByUTM[fieldID] = field
 	}
 	field.Add(dataPoint)
 }
@@ -57,7 +61,7 @@ func (f *FieldReport) Add(dataPoint data.DataPoint) {
 	}
 	lacStats.Add(dataPoint)
 
-	measurementKey := dataPoint.TimeAndSpace()
+	measurementKey := dataPoint.MeasurementID()
 	measurements, ok := f.Measurements[measurementKey]
 	if !ok {
 		measurements = &Measurement{ID: measurementKey}
@@ -66,18 +70,72 @@ func (f *FieldReport) Add(dataPoint data.DataPoint) {
 	measurements.Add(dataPoint)
 }
 
+func (f *FieldReport) LACReportsByLAC() []LACReport {
+	return f.lacReportsSortedBy(func(lacReports []LACReport) []LACReport {
+		// best server first
+		slices.SortFunc(lacReports, func(i, j LACReport) int {
+			return int(i.LAC) - int(j.LAC)
+		})
+		return lacReports
+	})
+}
+
+func (f *FieldReport) LACReportsByRSSI() []LACReport {
+	return f.lacReportsSortedBy(func(lacReports []LACReport) []LACReport {
+		// best server first, in doubt by LAC
+		slices.SortFunc(lacReports, func(i, j LACReport) int {
+			return data.SortRSSI(j.AverageRSSI(), i.AverageRSSI(), int(i.LAC)-int(j.LAC))
+		})
+		return lacReports
+	})
+}
+
+func (f *FieldReport) lacReportsSortedBy(sort func([]LACReport) []LACReport) []LACReport {
+	result := make([]LACReport, 0, len(f.LACs))
+	for _, lacReport := range f.LACs {
+		result = append(result, *lacReport)
+	}
+	result = sort(result)
+	return result
+}
+
 func (f *FieldReport) AverageRSSI() int {
 	sum := 0
 	count := 0
 	for _, measurement := range f.Measurements {
 		bestRSSI := measurement.BestRSSI()
-		if bestRSSI != data.NoSignal {
-			sum += bestRSSI
+		if bestRSSI == data.NoSignal {
+			continue
+		}
+		sum += bestRSSI
+		count++
+	}
+	if count == 0 {
+		return data.NoSignal
+	}
+	return sum / count
+}
+
+func (f *FieldReport) AverageGAN() int {
+	avgRSSI := f.AverageRSSI()
+	if avgRSSI == data.NoSignal {
+		return data.NoGAN
+	}
+	return data.RSSIToGAN(avgRSSI)
+}
+
+func (f *FieldReport) AverageSignalLevelDifference() int {
+	sum := 0
+	count := 0
+	for _, measurement := range f.Measurements {
+		diff := measurement.SignalLevelDifference()
+		if diff != 0 {
+			sum += diff
 			count++
 		}
 	}
 	if count == 0 {
-		return data.NoSignal
+		return 0
 	}
 	return sum / count
 }
@@ -126,27 +184,40 @@ func (s *LACReport) AverageRSSI() int {
 	return sum / len(s.rssi)
 }
 
+func (s *LACReport) AverageGAN() int {
+	avgRSSI := s.AverageRSSI()
+	if avgRSSI == data.NoSignal {
+		return data.NoGAN
+	}
+	return data.RSSIToGAN(avgRSSI)
+}
+
 type Measurement struct {
 	ID         string
 	dataPoints []data.DataPoint
 }
 
 func (m *Measurement) Add(dataPoint data.DataPoint) {
-	if dataPoint.TimeAndSpace() != m.ID {
+	if dataPoint.MeasurementID() != m.ID {
 		return
 	}
 	m.dataPoints = append(m.dataPoints, dataPoint)
+	m.dataPoints = data.SortByRSSI(m.dataPoints)
 }
 
 func (m *Measurement) BestRSSI() int {
-	result := -1000
-	for _, dataPoint := range m.dataPoints {
-		if dataPoint.RSSI != data.NoSignal && dataPoint.RSSI > result {
-			result = dataPoint.RSSI
-		}
-	}
-	if result == -1000 {
+	if len(m.dataPoints) == 0 {
 		return data.NoSignal
 	}
-	return result
+	return m.dataPoints[0].RSSI
+}
+
+func (m *Measurement) SignalLevelDifference() int {
+	if len(m.dataPoints) < 2 {
+		return 0
+	}
+	if m.dataPoints[0].RSSI == data.NoSignal || m.dataPoints[1].RSSI == data.NoSignal {
+		return 0
+	}
+	return m.dataPoints[0].RSSI - m.dataPoints[1].RSSI
 }

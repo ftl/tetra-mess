@@ -10,6 +10,7 @@ import (
 )
 
 const NoSignal = 99
+const NoGAN = -3
 
 var ZeroDataPoint = DataPoint{}
 
@@ -39,7 +40,7 @@ func (dp DataPoint) IsValid() bool {
 	return dp.Satellites > 0 && dp.RSSI != NoSignal
 }
 
-func (dp DataPoint) TimeAndSpace() string {
+func (dp DataPoint) MeasurementID() string {
 	data := fmt.Sprintf("%f-%f-%s", dp.Latitude, dp.Longitude, dp.Timestamp.Format(time.RFC3339))
 	hash := md5.Sum([]byte(data))
 	return hex.EncodeToString(hash[:])
@@ -100,7 +101,7 @@ func (f UTMField) Area() (minLat float64, minLon float64, maxLat float64, maxLon
 func RSSIToGAN(rssi int) int {
 	switch {
 	case rssi == NoSignal:
-		return -3
+		return NoGAN
 	case rssi < -103:
 		return -2
 	case rssi < -97:

@@ -12,6 +12,7 @@ import (
 )
 
 var (
+	NoGANColor     = color.RGBA{R: 0, G: 0, B: 0, A: 255}
 	GANMinus2Color = color.RGBA{R: 139, G: 0, B: 0, A: 255}
 	GANMinus1Color = color.RGBA{R: 220, G: 20, B: 60, A: 255}
 	GAN0Color      = color.RGBA{R: 255, G: 140, B: 0, A: 255}
@@ -71,12 +72,12 @@ func dataPointToKMLPlacemark(dataPoint data.DataPoint) kml.Element {
 	)
 }
 
-func WriteFieldStatsAsKML(out io.Writer, name string, fieldReports []quality.FieldReport) error {
+func WriteFieldReportsAsKML(out io.Writer, name string, fieldReports []quality.FieldReport) error {
 	elements := make([]kml.Element, 0, len(fieldReports)+9)
 	elements = append(elements,
 		kml.Name(name),
 	)
-	for gan := -3; gan <= 4; gan++ {
+	for gan := data.NoGAN; gan <= 4; gan++ {
 		styleID := fmt.Sprintf("gan%d-style", gan)
 		style := kml.Style(
 			kml.PolyStyle(
@@ -130,22 +131,35 @@ func fieldReportsToKMLPlacemarks(fieldReports []quality.FieldReport) []kml.Eleme
 
 func fieldReportDescription(fieldReports quality.FieldReport) string {
 	var result string
-	result += fmt.Sprintf(`Field: %s<br/>
-Average RSSI: %ddBm, Average GAN: %d<br/>`,
+	result += fmt.Sprintf(`<table>
+<tr><th>UTM Field</th><td>%s</td></tr>
+<tr><th>Avg RSSI</th><td>%ddBm</td></tr>
+<tr><th>Avg GAN</th><td>%d</td></tr>
+<tr><th>Avg SLD</th><td>%ddB</td></tr>
+</table><br/>`,
 		fieldReports.Field.FieldID(),
 		fieldReports.AverageRSSI(),
-		data.RSSIToGAN(fieldReports.AverageRSSI()))
-
-	for _, lacStats := range fieldReports.LACs {
-		result += fmt.Sprintf(`LAC: %d<br/>
-Average RSSI: %ddBm, Average GAN: %d<br/>Min RSSI: %ddBm, Max RSSI: %ddBm<br/>`,
+		fieldReports.AverageGAN(),
+		fieldReports.AverageSignalLevelDifference(),
+	)
+	result += fmt.Sprintf(`<table>
+<tr>
+<th>LAC</th>
+<th>Avg RSSI</th>
+<th>Avg GAN</th>
+<th>Min RSSI</th>
+<th>Max RSSI</th>
+</tr>`)
+	for _, lacStats := range fieldReports.LACReportsByRSSI() {
+		result += fmt.Sprintf(`<tr><td>%d</td><td>%d</td><td>%d</td><td>%d</td><td>%d</td></tr>`,
 			lacStats.LAC,
 			lacStats.AverageRSSI(),
-			data.RSSIToGAN(lacStats.AverageRSSI()),
+			lacStats.AverageGAN(),
 			lacStats.MinRSSI,
 			lacStats.MaxRSSI,
 		)
 	}
+	result += `</table><br/>`
 
 	return result
 }
@@ -160,8 +174,8 @@ func ganToColor(gan int) color.Color {
 		GAN3Color,
 		GAN4Color,
 	}
-	if gan < -2 || gan > 4 {
-		return color.Black
+	if gan <= data.NoGAN || gan > 4 {
+		return NoGANColor
 	}
 	return colors[gan+2]
 }
