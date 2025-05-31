@@ -8,6 +8,7 @@ import (
 	"github.com/twpayne/go-kml/v3"
 
 	"github.com/ftl/tetra-mess/pkg/data"
+	"github.com/ftl/tetra-mess/pkg/quality"
 )
 
 var (
@@ -68,6 +69,85 @@ func dataPointToKMLPlacemark(dataPoint data.DataPoint) kml.Element {
 			),
 		),
 	)
+}
+
+func WriteFieldStatsAsKML(out io.Writer, name string, fieldReports []quality.FieldReport) error {
+	elements := make([]kml.Element, 0, len(fieldReports)+9)
+	elements = append(elements,
+		kml.Name(name),
+	)
+	for gan := -3; gan <= 4; gan++ {
+		styleID := fmt.Sprintf("gan%d-style", gan)
+		style := kml.Style(
+			kml.PolyStyle(
+				kml.Color(ganToColor(gan)),
+				kml.Fill(true),
+			),
+		).WithID(styleID)
+		elements = append(elements, style)
+	}
+	elements = append(elements, fieldReportsToKMLPlacemarks(fieldReports)...)
+
+	doc := kml.KML(
+		kml.Document(elements...),
+	)
+
+	return doc.WriteIndent(out, "", "  ")
+}
+
+func fieldReportsToKMLPlacemarks(fieldReports []quality.FieldReport) []kml.Element {
+	result := make([]kml.Element, 0, len(fieldReports))
+	for _, fieldStat := range fieldReports {
+		minLat, minLon, maxLat, maxLon := fieldStat.Area()
+		if minLat == 0 && minLon == 0 && maxLat == 0 && maxLon == 0 {
+			continue // Skip fields without valid area
+		}
+		avgGAN := data.RSSIToGAN(fieldStat.AverageRSSI())
+		styleURL := fmt.Sprintf("#gan%d-style", avgGAN)
+		placemark := kml.Placemark(
+			kml.Name(fmt.Sprintf("Field %s", fieldStat.Field.FieldID())),
+			kml.Description(fieldReportDescription(fieldStat)),
+			kml.StyleURL(styleURL),
+			kml.Polygon(
+				kml.OuterBoundaryIs(
+					kml.LinearRing(
+						kml.Coordinates(
+							kml.Coordinate{Lat: maxLat, Lon: minLon},
+							kml.Coordinate{Lat: minLat, Lon: minLon},
+							kml.Coordinate{Lat: minLat, Lon: maxLon},
+							kml.Coordinate{Lat: maxLat, Lon: maxLon},
+							kml.Coordinate{Lat: maxLat, Lon: minLon},
+						),
+					),
+				),
+			),
+		)
+
+		result = append(result, placemark)
+	}
+	return result
+}
+
+func fieldReportDescription(fieldReports quality.FieldReport) string {
+	var result string
+	result += fmt.Sprintf(`Field: %s<br/>
+Average RSSI: %ddBm, Average GAN: %d<br/>`,
+		fieldReports.Field.FieldID(),
+		fieldReports.AverageRSSI(),
+		data.RSSIToGAN(fieldReports.AverageRSSI()))
+
+	for _, lacStats := range fieldReports.LACs {
+		result += fmt.Sprintf(`LAC: %d<br/>
+Average RSSI: %ddBm, Average GAN: %d<br/>Min RSSI: %ddBm, Max RSSI: %ddBm<br/>`,
+			lacStats.LAC,
+			lacStats.AverageRSSI(),
+			data.RSSIToGAN(lacStats.AverageRSSI()),
+			lacStats.MinRSSI,
+			lacStats.MaxRSSI,
+		)
+	}
+
+	return result
 }
 
 func ganToColor(gan int) color.Color {

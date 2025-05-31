@@ -9,6 +9,7 @@ go 1.24.2
 require (
 	github.com/ftl/tetra-pei v1.2.1
 	github.com/hedhyw/Go-Serial-Detector v1.0.0-rc1
+	github.com/im7mortal/UTM v1.4.0
 	github.com/jacobsa/go-serial v0.0.0-20180131005756-15cf729a72d4
 	github.com/spf13/cobra v1.9.1
 	github.com/tkrajina/gpxgo v1.4.0

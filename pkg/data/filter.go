@@ -78,3 +78,22 @@ func SortByTimestamp(dataPoints []DataPoint) []DataPoint {
 	})
 	return dataPoints
 }
+
+func MapByUTMField(dataPoints []DataPoint) map[string][]DataPoint {
+	result := make(map[string][]DataPoint)
+	for _, dataPoint := range dataPoints {
+		field := dataPoint.UTMField()
+		key := field.FieldID()
+		result[key] = append(result[key], dataPoint)
+	}
+	return result
+}
+
+func MapByTimeAndSpace(dataPoints []DataPoint) map[string][]DataPoint {
+	result := make(map[string][]DataPoint)
+	for _, dataPoint := range dataPoints {
+		key := dataPoint.TimeAndSpace()
+		result[key] = append(result[key], dataPoint)
+	}
+	return result
+}
