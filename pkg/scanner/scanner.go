@@ -4,14 +4,14 @@ import (
 	"context"
 	"time"
 
-	"github.com/ftl/tetra-pei/com"
 	"github.com/ftl/tetra-pei/ctrl"
 
 	"github.com/ftl/tetra-mess/pkg/data"
+	"github.com/ftl/tetra-mess/pkg/radio"
 )
 
-func ScanSignalAndPosition(ctx context.Context, radio *com.COM) (data.Position, []data.DataPoint, error) {
-	lat, lon, sats, timestamp, err := ctrl.RequestGPSPosition(ctx, radio)
+func ScanSignalAndPosition(ctx context.Context, pei radio.PEI) (data.Position, []data.DataPoint, error) {
+	lat, lon, sats, timestamp, err := ctrl.RequestGPSPosition(ctx, pei)
 	if err != nil {
 		lat = 0
 		lon = 0
@@ -26,12 +26,12 @@ func ScanSignalAndPosition(ctx context.Context, radio *com.COM) (data.Position, 
 		Timestamp:  timestamp,
 	}
 
-	dbm, err := ctrl.RequestSignalStrength(ctx, radio)
+	dbm, err := ctrl.RequestSignalStrength(ctx, pei)
 	if err != nil {
 		dbm = 0
 	}
 
-	cellInfos, err := RequestCellListInformation(ctx, radio)
+	cellInfos, err := RequestCellListInformation(ctx, pei)
 	if err != nil {
 		return position,
 			[]data.DataPoint{{

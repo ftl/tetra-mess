@@ -8,9 +8,9 @@ import (
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/ftl/tetra-mess/pkg/quality"
+	"github.com/ftl/tetra-mess/pkg/radio"
 	"github.com/ftl/tetra-mess/pkg/scanner"
 	"github.com/ftl/tetra-mess/pkg/tui"
-	"github.com/ftl/tetra-pei/com"
 	"github.com/spf13/cobra"
 )
 
@@ -23,7 +23,7 @@ var tuiFlags = struct {
 var tuiCmd = &cobra.Command{
 	Use:   "tui",
 	Short: "Start the TUI to monitor measurement data and control tracing",
-	Run:   runWithRadio(runTUI),
+	Run:   runWithPEI(runTUI),
 }
 
 func init() {
@@ -32,15 +32,15 @@ func init() {
 	rootCmd.AddCommand(tuiCmd)
 }
 
-func runTUI(ctx context.Context, radio *com.COM, cmd *cobra.Command, args []string) {
+func runTUI(ctx context.Context, pei radio.PEI, cmd *cobra.Command, args []string) {
 	// radio
-	radioData, err := setupRadioForTUI(ctx, radio)
+	radioData, err := setupRadioForTUI(ctx, pei)
 	if err != nil {
 		fatalf("cannot setup radio: %v", err)
 	}
 	defer func() {
 		fmt.Println("Closing radio connection...")
-		radio.Close()
+		pei.Close()
 	}()
 
 	// UI
@@ -61,8 +61,8 @@ func runTUI(ctx context.Context, radio *com.COM, cmd *cobra.Command, args []stri
 	p.Wait()
 }
 
-func setupRadioForTUI(ctx context.Context, radio *com.COM) (<-chan tui.RadioData, error) {
-	err := radio.ATs(ctx,
+func setupRadioForTUI(ctx context.Context, pei radio.PEI) (<-chan tui.RadioData, error) {
+	err := pei.ATs(ctx,
 		"ATZ",
 		"ATE0",
 		"AT+CSCS=8859-1",
@@ -85,7 +85,7 @@ func setupRadioForTUI(ctx context.Context, radio *com.COM) (<-chan tui.RadioData
 			case <-ctx.Done():
 				return
 			case <-scanTicker.C:
-				scanForTUI(ctx, radio, radioData)
+				scanForTUI(ctx, pei, radioData)
 			}
 		}
 	}()
@@ -93,8 +93,8 @@ func setupRadioForTUI(ctx context.Context, radio *com.COM) (<-chan tui.RadioData
 	return radioData, nil
 }
 
-func scanForTUI(ctx context.Context, radio *com.COM, radioData chan<- tui.RadioData) {
-	position, dataPoints, err := scanner.ScanSignalAndPosition(ctx, radio)
+func scanForTUI(ctx context.Context, pei radio.PEI, radioData chan<- tui.RadioData) {
+	position, dataPoints, err := scanner.ScanSignalAndPosition(ctx, pei)
 	if err != nil {
 		log.Printf("error scanning signal and position: %v", err) // TODO: write to stderr
 		return

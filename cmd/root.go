@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ftl/tetra-mess/pkg/radio"
 	"github.com/ftl/tetra-pei/com"
 	"github.com/hedhyw/Go-Serial-Detector/pkg/v1/serialdet"
 	"github.com/jacobsa/go-serial/serial"
@@ -46,15 +47,15 @@ func Execute() {
 	}
 }
 
-func runWithRadioAndTimeout(run func(context.Context, *com.COM, *cobra.Command, []string)) func(*cobra.Command, []string) {
-	return runWithRadio(func(ctx context.Context, radio *com.COM, cmd *cobra.Command, args []string) {
+func runWithPEIAndTimeout(run func(context.Context, radio.PEI, *cobra.Command, []string)) func(*cobra.Command, []string) {
+	return runWithPEI(func(ctx context.Context, pei radio.PEI, cmd *cobra.Command, args []string) {
 		cmdCtx, cancel := context.WithTimeout(ctx, rootFlags.commandTimeout)
 		defer cancel()
-		run(cmdCtx, radio, cmd, args)
+		run(cmdCtx, pei, cmd, args)
 	})
 }
 
-func runWithRadio(run func(context.Context, *com.COM, *cobra.Command, []string)) func(*cobra.Command, []string) {
+func runWithPEI(run func(context.Context, radio.PEI, *cobra.Command, []string)) func(*cobra.Command, []string) {
 	return func(cmd *cobra.Command, args []string) {
 		portName, err := getRadioPortName()
 		if err != nil {
@@ -88,24 +89,24 @@ func runWithRadio(run func(context.Context, *com.COM, *cobra.Command, []string))
 
 		rootCtx := cmd.Context()
 
-		var radio *com.COM
+		var pei *com.COM
 		if tracePEIFile != nil {
-			radio = com.NewWithTrace(device, tracePEIFile)
+			pei = com.NewWithTrace(device, tracePEIFile)
 		} else {
-			radio = com.New(device)
+			pei = com.New(device)
 		}
-		err = radio.ClearSyntaxErrors(rootCtx)
+		err = pei.ClearSyntaxErrors(rootCtx)
 		if err != nil {
 			fatalf("cannot connect to radio: %v", err)
 		}
 
-		run(rootCtx, radio, cmd, args)
+		run(rootCtx, pei, cmd, args)
 
 		shutdownCtx, cancelShutdown := context.WithTimeout(context.Background(), rootFlags.commandTimeout)
 		defer cancelShutdown()
-		radio.AT(shutdownCtx, "ATZ")
-		radio.Close()
-		radio.WaitUntilClosed(shutdownCtx)
+		pei.AT(shutdownCtx, "ATZ")
+		pei.Close()
+		pei.WaitUntilClosed(shutdownCtx)
 	}
 }
 

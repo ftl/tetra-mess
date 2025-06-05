@@ -8,15 +8,14 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ftl/tetra-pei/com"
-
 	"github.com/ftl/tetra-mess/pkg/data"
+	"github.com/ftl/tetra-mess/pkg/radio"
 )
 
 var cellListResponseHeader = regexp.MustCompile(`^\+GCLI: (\d+)$`)
 
-func RequestCellListInformation(ctx context.Context, radio *com.COM) ([]data.CellInfo, error) {
-	response, err := radio.AT(ctx, "AT+GCLI?")
+func RequestCellListInformation(ctx context.Context, pei radio.PEI) ([]data.CellInfo, error) {
+	response, err := pei.AT(ctx, "AT+GCLI?")
 	if err != nil {
 		return nil, err
 	}
