@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"os/signal"
 	"strings"
@@ -57,26 +58,8 @@ func runWithPEIAndTimeout(run func(context.Context, radio.PEI, *cobra.Command, [
 
 func runWithPEI(run func(context.Context, radio.PEI, *cobra.Command, []string)) func(*cobra.Command, []string) {
 	return func(cmd *cobra.Command, args []string) {
-		portName, err := getRadioPortName()
-		if err != nil {
-			fatal(err)
-		}
-
-		portConfig := serial.OpenOptions{
-			PortName:              portName,
-			BaudRate:              38400,
-			DataBits:              8,
-			StopBits:              1,
-			ParityMode:            serial.PARITY_NONE,
-			RTSCTSFlowControl:     true,
-			MinimumReadSize:       4,
-			InterCharacterTimeout: 100,
-		}
-		device, err := serial.Open(portConfig)
-		if err != nil {
-			fatal(err)
-		}
-		defer device.Close()
+		var err error
+		rootCtx := cmd.Context()
 
 		var tracePEIFile *os.File
 		if rootFlags.tracePEIFilename != "" {
@@ -87,18 +70,23 @@ func runWithPEI(run func(context.Context, radio.PEI, *cobra.Command, []string)) 
 			defer tracePEIFile.Close()
 		}
 
-		rootCtx := cmd.Context()
-
-		var pei *com.COM
-		if tracePEIFile != nil {
-			pei = com.NewWithTrace(device, tracePEIFile)
-		} else {
-			pei = com.New(device)
-		}
-		err = pei.ClearSyntaxErrors(rootCtx)
+		portName, err := getRadioPortName()
 		if err != nil {
-			fatalf("cannot connect to radio: %v", err)
+			fatal(err)
 		}
+
+		var pei radio.PEI
+		var device io.ReadWriteCloser
+		if portName == "demo" {
+			pei = radio.NewDemo()
+		} else {
+			pei, device = setupPEI(rootCtx, portName, tracePEIFile)
+		}
+		defer func() {
+			if device != nil {
+				device.Close()
+			}
+		}()
 
 		run(rootCtx, pei, cmd, args)
 
@@ -128,6 +116,36 @@ func getRadioPortName() (string, error) {
 	}
 
 	return "", fmt.Errorf("no active PEI interface found, use the --device parameter to provide the serial communication device")
+}
+
+func setupPEI(ctx context.Context, portName string, tracePEIFile io.Writer) (radio.PEI, io.ReadWriteCloser) {
+	portConfig := serial.OpenOptions{
+		PortName:              portName,
+		BaudRate:              38400,
+		DataBits:              8,
+		StopBits:              1,
+		ParityMode:            serial.PARITY_NONE,
+		RTSCTSFlowControl:     true,
+		MinimumReadSize:       4,
+		InterCharacterTimeout: 100,
+	}
+	device, err := serial.Open(portConfig)
+	if err != nil {
+		fatal(err)
+	}
+
+	var pei radio.PEI
+	if tracePEIFile != nil {
+		pei = com.NewWithTrace(device, tracePEIFile)
+	} else {
+		pei = com.New(device)
+	}
+	err = pei.ClearSyntaxErrors(ctx)
+	if err != nil {
+		fatalf("cannot connect to radio: %v", err)
+	}
+
+	return pei, device
 }
 
 func fatal(err error) {
