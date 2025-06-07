@@ -157,3 +157,7 @@ func fatal(err error) {
 func fatalf(format string, args ...any) {
 	fatal(fmt.Errorf(format, args...))
 }
+
+func logErrorf(format string, args ...any) {
+	fmt.Fprintf(os.Stderr, format+"\n", args...)
+}

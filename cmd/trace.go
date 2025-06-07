@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -113,12 +112,7 @@ func runTrace(ctx context.Context, pei radio.PEI, cmd *cobra.Command, args []str
 type TraceOutputFormat string
 
 func scanForTrace(ctx context.Context, pei radio.PEI, out io.Writer, encoder func(data.DataPoint) string, onlyValid bool) {
-	_, datapoints, err := scanner.ScanSignalAndPosition(ctx, pei)
-	if err != nil {
-		log.Printf("error scanning signal and position: %v", err) // TODO: write to stderr
-		return
-	}
-
+	_, datapoints := scanner.ScanSignalAndPosition(ctx, pei, logErrorf)
 	for _, dataPoint := range datapoints {
 		if onlyValid && !dataPoint.IsValid() {
 			continue
@@ -128,7 +122,7 @@ func scanForTrace(ctx context.Context, pei radio.PEI, out io.Writer, encoder fun
 
 		_, err := fmt.Fprintln(out, line)
 		if err != nil {
-			log.Printf("error writing data point: %v", err) // TODO: write to stderr
+			logErrorf("error writing data point: %v", err)
 			return
 		}
 	}

@@ -3,7 +3,6 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"log"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -95,11 +94,7 @@ func setupRadioForTUI(ctx context.Context, pei radio.PEI, scanInterval time.Dura
 }
 
 func scanForTUI(ctx context.Context, pei radio.PEI, radioData chan<- tui.RadioData) {
-	position, dataPoints, err := scanner.ScanSignalAndPosition(ctx, pei)
-	if err != nil {
-		log.Printf("error scanning signal and position: %v", err) // TODO: write to stderr
-		return
-	}
+	position, dataPoints := scanner.ScanSignalAndPosition(ctx, pei, logErrorf)
 	measurement := quality.Measurement{}
 	measurement.Add(dataPoints...)
 	radioData <- tui.RadioData{

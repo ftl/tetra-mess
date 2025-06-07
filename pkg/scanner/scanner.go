@@ -10,9 +10,12 @@ import (
 	"github.com/ftl/tetra-mess/pkg/radio"
 )
 
-func ScanSignalAndPosition(ctx context.Context, pei radio.PEI) (data.Position, []data.DataPoint, error) {
+type Logger func(string, ...any)
+
+func ScanSignalAndPosition(ctx context.Context, pei radio.PEI, log Logger) (data.Position, []data.DataPoint) {
 	lat, lon, sats, timestamp, err := ctrl.RequestGPSPosition(ctx, pei)
 	if err != nil {
+		log("cannot read GPS position: %v", err)
 		lat = 0
 		lon = 0
 		sats = 0
@@ -28,11 +31,13 @@ func ScanSignalAndPosition(ctx context.Context, pei radio.PEI) (data.Position, [
 
 	dbm, err := ctrl.RequestSignalStrength(ctx, pei)
 	if err != nil {
+		log("cannot read signal strength: %v", err)
 		dbm = 0
 	}
 
 	cellInfos, err := RequestCellListInformation(ctx, pei)
 	if err != nil {
+		log("cannot read cell list information: %v", err)
 		return position,
 			[]data.DataPoint{{
 				Latitude:   lat,
@@ -40,7 +45,7 @@ func ScanSignalAndPosition(ctx context.Context, pei radio.PEI) (data.Position, [
 				Satellites: sats,
 				Timestamp:  timestamp,
 				RSSI:       dbm,
-			}}, nil
+			}}
 	}
 
 	dataPoints := make([]data.DataPoint, 0, len(cellInfos))
@@ -57,5 +62,5 @@ func ScanSignalAndPosition(ctx context.Context, pei radio.PEI) (data.Position, [
 		}
 		dataPoints = append(dataPoints, dataPoint)
 	}
-	return position, dataPoints, nil
+	return position, dataPoints
 }
