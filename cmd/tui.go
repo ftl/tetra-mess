@@ -48,11 +48,8 @@ func runTUI(ctx context.Context, pei radio.PEI, cmd *cobra.Command, args []strin
 	// p := tea.NewProgram(mainScreen)
 	p := tea.NewProgram(mainScreen, tea.WithAltScreen())
 
-	go func() {
-		for rd := range radioData {
-			p.Send(rd)
-		}
-	}()
+	logic := tui.NewLogic(p, radioData)
+	logic.Start(ctx)
 
 	_, err = p.Run()
 	if err != nil {

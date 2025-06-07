@@ -17,6 +17,8 @@ type RadioData struct {
 }
 
 type MainScreen struct {
+	logic *Logic
+
 	// UI state
 	version     string
 	utmField    string
@@ -79,6 +81,8 @@ func (s MainScreen) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		s.height = msg.Height
 	case tea.KeyMsg:
 		return s.handleKey(msg)
+	case *Logic:
+		s.logic = msg
 	case RadioData:
 		return s.handleRadioData(msg)
 	}
