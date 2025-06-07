@@ -38,7 +38,7 @@ func init() {
 
 func runTUI(ctx context.Context, pei radio.PEI, cmd *cobra.Command, args []string) {
 	// radio
-	radioData, err := setupRadioForTUI(ctx, pei)
+	radioData, err := setupRadioForTUI(ctx, pei, tuiFlags.scanInterval)
 	if err != nil {
 		fatalf("cannot setup radio: %v", err)
 	}
@@ -62,7 +62,7 @@ func runTUI(ctx context.Context, pei radio.PEI, cmd *cobra.Command, args []strin
 	p.Wait()
 }
 
-func setupRadioForTUI(ctx context.Context, pei radio.PEI) (<-chan tui.RadioData, error) {
+func setupRadioForTUI(ctx context.Context, pei radio.PEI, scanInterval time.Duration) (<-chan tui.RadioData, error) {
 	err := pei.ATs(ctx,
 		"ATZ",
 		"ATE0",
@@ -78,7 +78,7 @@ func setupRadioForTUI(ctx context.Context, pei radio.PEI) (<-chan tui.RadioData,
 		defer close(radioData)
 		defer fmt.Println("Radio loop closed")
 
-		scanTicker := time.NewTicker(traceFlags.scanInterval)
+		scanTicker := time.NewTicker(scanInterval)
 		defer scanTicker.Stop()
 
 		for {
