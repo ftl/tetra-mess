@@ -62,9 +62,9 @@ func parseCellInfo(line string) (data.CellInfo, error) {
 		return data.CellInfo{}, fmt.Errorf("invalid LAC: %w", err)
 	}
 
-	id, err := strconv.ParseUint(parts[2], 16, 32)
+	carrier, err := strconv.ParseUint(parts[2], 16, 32)
 	if err != nil {
-		return data.CellInfo{}, fmt.Errorf("invalid ID: %w", err)
+		return data.CellInfo{}, fmt.Errorf("invalid carrier: %w", err)
 	}
 
 	rawRSSI, err := strconv.Atoi(parts[3])
@@ -78,15 +78,15 @@ func parseCellInfo(line string) (data.CellInfo, error) {
 		rssi = data.NoSignal
 	}
 
-	csnr, err := strconv.Atoi(parts[4])
+	cx, err := strconv.Atoi(parts[4])
 	if err != nil {
-		return data.CellInfo{}, fmt.Errorf("invalid CSNR: %w", err)
+		return data.CellInfo{}, fmt.Errorf("invalid Cx: %w", err)
 	}
 
 	return data.CellInfo{
-		LAC:  uint32(lac),
-		ID:   uint32(id),
-		RSSI: rssi,
-		CSNR: csnr,
+		LAC:     uint32(lac),
+		Carrier: uint32(carrier),
+		RSSI:    rssi,
+		Cx:      cx,
 	}, nil
 }

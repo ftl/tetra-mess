@@ -26,7 +26,7 @@ type MainScreen struct {
 	lastScan    string
 	currentLAC  uint32
 	currentRSSI int
-	currentCSNR int
+	currentCx   int
 	currentGAN  int
 	currentSLD  int
 	averageRSSI int
@@ -109,7 +109,7 @@ func (s MainScreen) handleRadioData(msg RadioData) (tea.Model, tea.Cmd) {
 	bestServer := msg.Measurement.BestServer()
 	s.currentLAC = bestServer.LAC
 	s.currentRSSI = bestServer.RSSI
-	s.currentCSNR = bestServer.CSNR
+	s.currentCx = bestServer.Cx
 	s.currentGAN = data.RSSIToGAN(bestServer.RSSI)
 	s.currentSLD = msg.Measurement.SignalLevelDifference()
 	s.averageRSSI = fieldReport.AverageRSSI()
@@ -149,7 +149,7 @@ func (s MainScreen) View() string {
 		fmt.Sprintf("LAC: %d", s.currentLAC),
 		fmt.Sprintf("RSSI: %d", s.currentRSSI),
 		fmt.Sprintf("GAN: %d", s.currentGAN),
-		fmt.Sprintf("CSNR: %d", s.currentCSNR),
+		fmt.Sprintf("Cx: %d", s.currentCx),
 		fmt.Sprintf("SLD: %d", s.currentSLD),
 	)
 

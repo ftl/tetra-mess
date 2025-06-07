@@ -21,7 +21,7 @@ var evalFlags = struct {
 
 var evalTrackFlags = struct {
 	lac          string
-	id           string
+	carrier      string
 	outputFormat string
 }{}
 
@@ -34,7 +34,7 @@ var evalTrackCmd = &cobra.Command{
 	Use:   "track [tracefile][ tracefile...]",
 	Short: "Convert a signal trace file to a track file in the GPX or KML format",
 	Long: `Convert a signal trace file to a track file in the GPX or KML format.
-If no LAC or ID is given, the best server will be used for each GPS position.
+If no LAC or carrier is given, the best server will be used for each GPS position.
 If no output filename is given, the filename is derived from the trace filename(s).
 `,
 	Run: runEvalTrack,
@@ -51,7 +51,7 @@ func init() {
 	evalCmd.PersistentFlags().StringVar(&evalFlags.name, "name", "", "a name for the evaluation result (default: derived from the input filename)")
 
 	evalTrackCmd.Flags().StringVar(&evalTrackFlags.lac, "lac", "", "LAC of a specific base station to filter for (can be given as decimal or hexadecimal value)")
-	evalTrackCmd.Flags().StringVar(&evalTrackFlags.id, "id", "", "ID of a specific base station to filter for (can be given as decimal or hexadecimal value)")
+	evalTrackCmd.Flags().StringVar(&evalTrackFlags.carrier, "carrier", "", "carrier of a specific base station to filter for (can be given as decimal or hexadecimal value)")
 	evalTrackCmd.Flags().StringVar(&evalTrackFlags.outputFormat, "format", "kml", "output format (gpx, kml)")
 
 	evalCmd.AddCommand(evalTrackCmd)
@@ -76,10 +76,10 @@ func runEvalTrack(cmd *cobra.Command, args []string) {
 		if err == nil {
 			filter = data.FilterByLAC(value)
 		}
-	case evalTrackFlags.id != "":
-		value, err = data.ParseDecOrHex(evalTrackFlags.id)
+	case evalTrackFlags.carrier != "":
+		value, err = data.ParseDecOrHex(evalTrackFlags.carrier)
 		if err == nil {
-			filter = data.FilterByID(value)
+			filter = data.FilterByCarrier(value)
 		}
 	default:
 		filter = data.FilterBestServer()

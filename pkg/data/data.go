@@ -27,10 +27,10 @@ func (p Position) ToUTMField() UTMField {
 }
 
 type CellInfo struct {
-	LAC  uint32
-	ID   uint32
-	RSSI int
-	CSNR int
+	LAC     uint32
+	Carrier uint32
+	RSSI    int
+	Cx      int
 }
 
 type DataPoint struct {
@@ -39,9 +39,9 @@ type DataPoint struct {
 	Satellites int       `json:"sats"`
 	Timestamp  time.Time `json:"ts"`
 	LAC        uint32    `json:"lac"`
-	ID         uint32    `json:"id"`
+	Carrier    uint32    `json:"carrier"`
 	RSSI       int       `json:"rssi"`
-	CSNR       int       `json:"csnr"`
+	Cx         int       `json:"cx"`
 }
 
 func (dp DataPoint) IsZero() bool {

@@ -54,7 +54,7 @@ func dataPointToKMLPlacemark(dataPoint data.DataPoint) kml.Element {
 	color := ganToColor(gan)
 	return kml.Placemark(
 		kml.Name(fmt.Sprintf("%d/%x %ddBm", dataPoint.LAC, dataPoint.LAC, dataPoint.RSSI)),
-		kml.Description(fmt.Sprintf("LAC: %d<br/>ID: %x<br/>RSSI: %ddBm<br/>CSNR: %d<br/>GAN: %d", dataPoint.LAC, dataPoint.ID, dataPoint.RSSI, dataPoint.CSNR, gan)),
+		kml.Description(fmt.Sprintf("LAC: %d<br/>Carrier: %x<br/>RSSI: %ddBm<br/>Cx: %d<br/>GAN: %d", dataPoint.LAC, dataPoint.Carrier, dataPoint.RSSI, dataPoint.Cx, gan)),
 		kml.TimeStamp(kml.When(dataPoint.Timestamp)),
 		kml.Point(
 			kml.Coordinates(kml.Coordinate{Lat: dataPoint.Latitude, Lon: dataPoint.Longitude}),

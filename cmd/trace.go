@@ -35,7 +35,7 @@ The output file can be in CSV or JSON format, depending on the file extension.`,
 
 func init() {
 	traceCmd.Flags().DurationVar(&traceFlags.scanInterval, "scan-interval", defaultTraceScanInterval, "scan interval")
-	traceCmd.Flags().BoolVar(&traceFlags.onlyValid, "only-valid", false, "output only valid data points (with GPS position and RSSI/CSNR values)")
+	traceCmd.Flags().BoolVar(&traceFlags.onlyValid, "only-valid", false, "output only valid data points (with GPS position and RSSI/Cx values)")
 
 	traceCmd.Flags().MarkHidden("output")
 

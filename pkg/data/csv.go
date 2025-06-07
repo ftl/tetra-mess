@@ -15,9 +15,9 @@ func DataPointToCSV(dataPoint DataPoint) string {
 		dataPoint.Longitude,
 		dataPoint.Satellites,
 		dataPoint.LAC,
-		dataPoint.ID,
+		dataPoint.Carrier,
 		dataPoint.RSSI,
-		dataPoint.CSNR)
+		dataPoint.Cx)
 }
 
 func IsCSVLine(line string) bool {
@@ -54,17 +54,17 @@ func ParseCSVLine(line string) (DataPoint, error) {
 	if err != nil {
 		return DataPoint{}, fmt.Errorf("error parsing LAC: %w", err)
 	}
-	id, err := ParseDecOrHex(fields[5])
+	carrier, err := ParseDecOrHex(fields[5])
 	if err != nil {
-		return DataPoint{}, fmt.Errorf("error parsing ID: %w", err)
+		return DataPoint{}, fmt.Errorf("error parsing carrier: %w", err)
 	}
 	rssi, err := strconv.Atoi(fields[6])
 	if err != nil {
 		return DataPoint{}, fmt.Errorf("error parsing RSSI: %w", err)
 	}
-	csnr, err := strconv.Atoi(fields[7])
+	cx, err := strconv.Atoi(fields[7])
 	if err != nil {
-		return DataPoint{}, fmt.Errorf("error parsing CSNR: %w", err)
+		return DataPoint{}, fmt.Errorf("error parsing Cx: %w", err)
 	}
 
 	return DataPoint{
@@ -73,8 +73,8 @@ func ParseCSVLine(line string) (DataPoint, error) {
 		Longitude:  lon,
 		Satellites: sats,
 		LAC:        lac,
-		ID:         id,
+		Carrier:    carrier,
 		RSSI:       rssi,
-		CSNR:       csnr,
+		Cx:         cx,
 	}, nil
 }

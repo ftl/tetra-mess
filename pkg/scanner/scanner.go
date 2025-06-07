@@ -51,9 +51,9 @@ func ScanSignalAndPosition(ctx context.Context, pei radio.PEI) (data.Position, [
 			Satellites: sats,
 			Timestamp:  timestamp,
 			LAC:        cellInfo.LAC,
-			ID:         cellInfo.ID,
+			Carrier:    cellInfo.Carrier,
 			RSSI:       cellInfo.RSSI,
-			CSNR:       cellInfo.CSNR,
+			Cx:         cellInfo.Cx,
 		}
 		dataPoints = append(dataPoints, dataPoint)
 	}
