@@ -99,7 +99,7 @@ func (l *Logic) startTrace() error {
 
 	l.showMessage("tracing started")
 
-	return fmt.Errorf("not yet implemented")
+	return nil
 }
 
 func (l *Logic) stopTrace() error {

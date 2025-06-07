@@ -2,7 +2,6 @@ package tui
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
@@ -35,6 +34,7 @@ type MainScreen struct {
 	averageRSSI int
 	averageGAN  int
 	averageSLD  int
+	userMessage string
 
 	// UI widgets
 	width    int
@@ -85,11 +85,9 @@ func (s MainScreen) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case *Logic:
 		s.logic = msg
 	case error:
-		// TODO: display any error messages in the TUI
-		log.Println(msg.Error())
+		s.userMessage = fmt.Sprintf("E: %s", msg.Error())
 	case string:
-		// TODO: display any messages in the TUI
-		log.Println(msg)
+		s.userMessage = msg
 	case RadioData:
 		return s.handleRadioData(msg)
 	}
@@ -188,6 +186,7 @@ func (s MainScreen) View() string {
 					boxStyle.Width(15).Render(averageBox),
 				),
 			),
+			userMessageStyle.Width(30).Render(s.userMessage),
 		),
 		s.lacTable.View(),
 	)
