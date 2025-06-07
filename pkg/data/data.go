@@ -12,13 +12,25 @@ import (
 const NoSignal = 99
 const NoGAN = -3
 
+var NoPosition = Position{}
 var ZeroDataPoint = DataPoint{}
 
+type Position struct {
+	Latitude   float64
+	Longitude  float64
+	Satellites int
+	Timestamp  time.Time
+}
+
+func (p Position) ToUTMField() UTMField {
+	return NewUTMField(p.Latitude, p.Longitude)
+}
+
 type CellInfo struct {
-	LAC  uint32
-	ID   uint32
-	RSSI int
-	CSNR int
+	LAC     uint32
+	Carrier uint32
+	RSSI    int
+	Cx      int
 }
 
 type DataPoint struct {
@@ -27,9 +39,9 @@ type DataPoint struct {
 	Satellites int       `json:"sats"`
 	Timestamp  time.Time `json:"ts"`
 	LAC        uint32    `json:"lac"`
-	ID         uint32    `json:"id"`
+	Carrier    uint32    `json:"carrier"`
 	RSSI       int       `json:"rssi"`
-	CSNR       int       `json:"csnr"`
+	Cx         int       `json:"cx"`
 }
 
 func (dp DataPoint) IsZero() bool {
@@ -38,6 +50,10 @@ func (dp DataPoint) IsZero() bool {
 
 func (dp DataPoint) IsValid() bool {
 	return dp.Satellites > 0 && dp.RSSI != NoSignal
+}
+
+func (dp DataPoint) IsUsable() bool {
+	return IsUsableRSSI(dp.RSSI)
 }
 
 func (dp DataPoint) MeasurementID() string {
@@ -117,4 +133,8 @@ func RSSIToGAN(rssi int) int {
 	default:
 		return 4
 	}
+}
+
+func IsUsableRSSI(rssi int) bool {
+	return rssi >= -94
 }

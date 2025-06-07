@@ -16,6 +16,12 @@ func NewQualityReport() *QualityReport {
 	}
 }
 
+func (a *QualityReport) AddMeasurement(measurement Measurement) {
+	for _, dataPoint := range measurement.DataPoints {
+		a.Add(dataPoint)
+	}
+}
+
 func (a *QualityReport) Add(dataPoint data.DataPoint) {
 	fieldID := dataPoint.UTMField().FieldID()
 
@@ -33,6 +39,14 @@ func (a *QualityReport) FieldReports() []FieldReport {
 		stats = append(stats, *field)
 	}
 	return stats
+}
+
+func (a *QualityReport) FieldReportByUTM(utmField data.UTMField) FieldReport {
+	result, ok := a.fieldsByUTM[utmField.FieldID()]
+	if !ok {
+		return FieldReport{Field: utmField}
+	}
+	return *result
 }
 
 type FieldReport struct {
@@ -172,6 +186,21 @@ func (s *LACReport) Add(dataPoint data.DataPoint) {
 	}
 }
 
+func (c *LACReport) CurrentRSSI() int {
+	if len(c.rssi) == 0 {
+		return data.NoSignal
+	}
+	return c.rssi[len(c.rssi)-1]
+}
+
+func (s *LACReport) CurrentGAN() int {
+	currentRSSI := s.CurrentRSSI()
+	if currentRSSI == data.NoSignal {
+		return data.NoGAN
+	}
+	return data.RSSIToGAN(currentRSSI)
+}
+
 func (s *LACReport) AverageRSSI() int {
 	if len(s.rssi) == 0 {
 		return data.NoSignal
@@ -194,30 +223,60 @@ func (s *LACReport) AverageGAN() int {
 
 type Measurement struct {
 	ID         string
-	dataPoints []data.DataPoint
+	DataPoints []data.DataPoint
 }
 
-func (m *Measurement) Add(dataPoint data.DataPoint) {
-	if dataPoint.MeasurementID() != m.ID {
-		return
+func (m *Measurement) Add(dataPoints ...data.DataPoint) {
+	if len(dataPoints) > 0 && m.ID == "" && len(m.DataPoints) == 0 {
+		m.ID = dataPoints[0].MeasurementID()
 	}
-	m.dataPoints = append(m.dataPoints, dataPoint)
-	m.dataPoints = data.SortByRSSI(m.dataPoints)
+	for _, dataPoint := range dataPoints {
+		if dataPoint.MeasurementID() != m.ID {
+			return
+		}
+		m.DataPoints = append(m.DataPoints, dataPoint)
+		m.DataPoints = data.SortByRSSI(m.DataPoints)
+	}
+}
+
+func (m *Measurement) BestServer() data.DataPoint {
+	if len(m.DataPoints) == 0 {
+		return data.ZeroDataPoint
+	}
+	return m.DataPoints[0]
+}
+
+func (m *Measurement) SecondServer() data.DataPoint {
+	if len(m.DataPoints) < 2 {
+		return data.ZeroDataPoint
+	}
+	return m.DataPoints[1]
 }
 
 func (m *Measurement) BestRSSI() int {
-	if len(m.dataPoints) == 0 {
+	if len(m.DataPoints) == 0 {
 		return data.NoSignal
 	}
-	return m.dataPoints[0].RSSI
+	return m.DataPoints[0].RSSI
 }
 
 func (m *Measurement) SignalLevelDifference() int {
-	if len(m.dataPoints) < 2 {
+	if len(m.DataPoints) < 2 {
 		return 0
 	}
-	if m.dataPoints[0].RSSI == data.NoSignal || m.dataPoints[1].RSSI == data.NoSignal {
+	if m.DataPoints[0].RSSI == data.NoSignal || m.DataPoints[1].RSSI == data.NoSignal {
 		return 0
 	}
-	return m.dataPoints[0].RSSI - m.dataPoints[1].RSSI
+	return m.DataPoints[0].RSSI - m.DataPoints[1].RSSI
+}
+
+func (m *Measurement) UsableServers() int {
+	result := 0
+	for _, dataPoint := range m.DataPoints {
+		if !dataPoint.IsUsable() {
+			return result
+		}
+		result++
+	}
+	return result
 }

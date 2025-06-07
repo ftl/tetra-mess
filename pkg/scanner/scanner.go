@@ -4,14 +4,14 @@ import (
 	"context"
 	"time"
 
-	"github.com/ftl/tetra-pei/com"
 	"github.com/ftl/tetra-pei/ctrl"
 
 	"github.com/ftl/tetra-mess/pkg/data"
+	"github.com/ftl/tetra-mess/pkg/radio"
 )
 
-func ScanSignalAndPosition(ctx context.Context, radio *com.COM) ([]data.DataPoint, error) {
-	lat, lon, sats, timestamp, err := ctrl.RequestGPSPosition(ctx, radio)
+func ScanSignalAndPosition(ctx context.Context, pei radio.PEI) (data.Position, []data.DataPoint, error) {
+	lat, lon, sats, timestamp, err := ctrl.RequestGPSPosition(ctx, pei)
 	if err != nil {
 		lat = 0
 		lon = 0
@@ -19,23 +19,31 @@ func ScanSignalAndPosition(ctx context.Context, radio *com.COM) ([]data.DataPoin
 		timestamp = time.Now().UTC()
 	}
 
-	dbm, err := ctrl.RequestSignalStrength(ctx, radio)
+	position := data.Position{
+		Latitude:   lat,
+		Longitude:  lon,
+		Satellites: sats,
+		Timestamp:  timestamp,
+	}
+
+	dbm, err := ctrl.RequestSignalStrength(ctx, pei)
 	if err != nil {
 		dbm = 0
 	}
 
-	cellInfos, err := RequestCellListInformation(ctx, radio)
+	cellInfos, err := RequestCellListInformation(ctx, pei)
 	if err != nil {
-		return []data.DataPoint{{
-			Latitude:   lat,
-			Longitude:  lon,
-			Satellites: sats,
-			Timestamp:  timestamp,
-			RSSI:       dbm,
-		}}, nil
+		return position,
+			[]data.DataPoint{{
+				Latitude:   lat,
+				Longitude:  lon,
+				Satellites: sats,
+				Timestamp:  timestamp,
+				RSSI:       dbm,
+			}}, nil
 	}
 
-	result := make([]data.DataPoint, 0, len(cellInfos))
+	dataPoints := make([]data.DataPoint, 0, len(cellInfos))
 	for _, cellInfo := range cellInfos {
 		dataPoint := data.DataPoint{
 			Latitude:   lat,
@@ -43,11 +51,11 @@ func ScanSignalAndPosition(ctx context.Context, radio *com.COM) ([]data.DataPoin
 			Satellites: sats,
 			Timestamp:  timestamp,
 			LAC:        cellInfo.LAC,
-			ID:         cellInfo.ID,
+			Carrier:    cellInfo.Carrier,
 			RSSI:       cellInfo.RSSI,
-			CSNR:       cellInfo.CSNR,
+			Cx:         cellInfo.Cx,
 		}
-		result = append(result, dataPoint)
+		dataPoints = append(dataPoints, dataPoint)
 	}
-	return result, nil
+	return position, dataPoints, nil
 }

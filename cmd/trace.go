@@ -10,10 +10,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ftl/tetra-pei/com"
 	"github.com/spf13/cobra"
 
 	"github.com/ftl/tetra-mess/pkg/data"
+	"github.com/ftl/tetra-mess/pkg/radio"
 	"github.com/ftl/tetra-mess/pkg/scanner"
 )
 
@@ -30,19 +30,19 @@ var traceCmd = &cobra.Command{
 	Short: "Trace the signal strength and the GPS position and save it to a file",
 	Long: `Trace the signal strength and the GPS position and save it to a file
 The output file can be in CSV or JSON format, depending on the file extension.`,
-	Run: runWithRadio(runTrace), // do not use runWithRadioAndTimeout here, because we want to run the command indefinitely
+	Run: runWithPEI(runTrace), // do not use runWithRadioAndTimeout here, because we want to run the command indefinitely
 }
 
 func init() {
 	traceCmd.Flags().DurationVar(&traceFlags.scanInterval, "scan-interval", defaultTraceScanInterval, "scan interval")
-	traceCmd.Flags().BoolVar(&traceFlags.onlyValid, "only-valid", false, "output only valid data points (with GPS position and RSSI/CSNR values)")
+	traceCmd.Flags().BoolVar(&traceFlags.onlyValid, "only-valid", false, "output only valid data points (with GPS position and RSSI/Cx values)")
 
 	traceCmd.Flags().MarkHidden("output")
 
 	rootCmd.AddCommand(traceCmd)
 }
 
-func runTrace(ctx context.Context, radio *com.COM, cmd *cobra.Command, args []string) {
+func runTrace(ctx context.Context, pei radio.PEI, cmd *cobra.Command, args []string) {
 	if len(args) != 1 {
 		cmd.Help()
 		return
@@ -73,7 +73,7 @@ func runTrace(ctx context.Context, radio *com.COM, cmd *cobra.Command, args []st
 
 	onlyValid := traceFlags.onlyValid
 
-	err := radio.ATs(ctx,
+	err := pei.ATs(ctx,
 		"ATZ",
 		"ATE0",
 		"AT+CSCS=8859-1",
@@ -94,7 +94,7 @@ func runTrace(ctx context.Context, radio *com.COM, cmd *cobra.Command, args []st
 			case <-ctx.Done():
 				return
 			case <-scanTicker.C:
-				scan(ctx, radio, out, encoder, onlyValid)
+				scanForTrace(ctx, pei, out, encoder, onlyValid)
 			}
 		}
 	}()
@@ -112,8 +112,8 @@ func runTrace(ctx context.Context, radio *com.COM, cmd *cobra.Command, args []st
 
 type TraceOutputFormat string
 
-func scan(ctx context.Context, radio *com.COM, out io.Writer, encoder func(data.DataPoint) string, onlyValid bool) {
-	datapoints, err := scanner.ScanSignalAndPosition(ctx, radio)
+func scanForTrace(ctx context.Context, pei radio.PEI, out io.Writer, encoder func(data.DataPoint) string, onlyValid bool) {
+	_, datapoints, err := scanner.ScanSignalAndPosition(ctx, pei)
 	if err != nil {
 		log.Printf("error scanning signal and position: %v", err) // TODO: write to stderr
 		return

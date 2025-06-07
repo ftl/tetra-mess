@@ -24,11 +24,11 @@ func FilterByLAC(lac uint32) Filter {
 	})
 }
 
-func FilterByID(id uint32) Filter {
+func FilterByCarrier(carrier uint32) Filter {
 	return FilterFunc(func(dataPoints []DataPoint) []DataPoint {
 		result := make([]DataPoint, 0, len(dataPoints))
 		for _, dp := range dataPoints {
-			if dp.ID == id {
+			if dp.Carrier == carrier {
 				result = append(result, dp)
 			}
 		}
@@ -62,7 +62,7 @@ func bestServerAtTimeAndSpace(dataPoints []DataPoint) DataPoint {
 
 	result := dataPoints[0]
 	for _, dataPoint := range dataPoints {
-		if dataPoint.RSSI > result.RSSI || (dataPoint.RSSI == result.RSSI && dataPoint.CSNR > result.CSNR) {
+		if dataPoint.RSSI > result.RSSI || (dataPoint.RSSI == result.RSSI && dataPoint.Cx > result.Cx) {
 			result = dataPoint
 		}
 	}
