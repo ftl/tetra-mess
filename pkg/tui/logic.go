@@ -4,6 +4,9 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
+	"path/filepath"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -18,15 +21,19 @@ type Logic struct {
 	do        chan func() error
 	radioData <-chan RadioData
 
-	traceFile io.WriteCloser
+	outputDir    string
+	outputFormat string
+	traceFile    io.WriteCloser
 }
 
-func NewLogic(ui UIThread, radioData <-chan RadioData) *Logic {
+func NewLogic(ui UIThread, radioData <-chan RadioData, outputDir, outputFormat string) *Logic {
 	return &Logic{
-		ui:        ui,
-		do:        make(chan func() error, 0),
-		radioData: radioData,
-		traceFile: nil,
+		ui:           ui,
+		do:           make(chan func() error, 0),
+		radioData:    radioData,
+		outputDir:    outputDir,
+		outputFormat: outputFormat,
+		traceFile:    nil,
 	}
 }
 
@@ -92,14 +99,21 @@ func (l *Logic) startTrace() error {
 		return nil
 	}
 
-	// TODO: implement starting the trace
-	// - generate filename
-	// - open the file
-	// - set l.traceFile
+	filename := l.newTraceFilename()
+	file, err := os.Create(filename)
+	if err != nil {
+		return fmt.Errorf("cannot create trace file: %w", err)
+	}
+	l.traceFile = file
 
-	l.showMessage("tracing started")
+	l.showMessage("tracing started: %s", filename)
 
 	return nil
+}
+
+func (l *Logic) newTraceFilename() string {
+	filename := fmt.Sprintf("trace-%s.%s", time.Now().Format("20060102T150405"), l.outputFormat)
+	return filepath.Join(l.outputDir, filename)
 }
 
 func (l *Logic) stopTrace() error {

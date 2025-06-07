@@ -18,6 +18,8 @@ const defaultTUIScanInterval = 10 * time.Second
 
 var tuiFlags = struct {
 	scanInterval time.Duration
+	outputDir    string
+	outputFormat string
 }{}
 
 var tuiCmd = &cobra.Command{
@@ -28,6 +30,8 @@ var tuiCmd = &cobra.Command{
 
 func init() {
 	tuiCmd.Flags().DurationVar(&tuiFlags.scanInterval, "scan-interval", defaultTUIScanInterval, "scan interval")
+	tuiCmd.Flags().StringVar(&tuiFlags.outputDir, "output", "", "output directory for trace files")
+	tuiCmd.Flags().StringVar(&tuiFlags.outputFormat, "format", "csv", "output format for trace files (csv, json)")
 
 	rootCmd.AddCommand(tuiCmd)
 }
@@ -48,7 +52,7 @@ func runTUI(ctx context.Context, pei radio.PEI, cmd *cobra.Command, args []strin
 	// p := tea.NewProgram(mainScreen)
 	p := tea.NewProgram(mainScreen, tea.WithAltScreen())
 
-	logic := tui.NewLogic(p, radioData)
+	logic := tui.NewLogic(p, radioData, tuiFlags.outputDir, tuiFlags.outputFormat)
 	logic.Start(ctx)
 
 	_, err = p.Run()

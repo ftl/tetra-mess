@@ -10,6 +10,8 @@ var (
 	boxStyle = lipgloss.NewStyle().
 			Align(lipgloss.Left)
 
+	tableStyle = lipgloss.NewStyle()
+
 	userMessageStyle = lipgloss.NewStyle().
 				Align(lipgloss.Left).
 				Bold(true)

@@ -174,21 +174,24 @@ func (s MainScreen) View() string {
 		fmt.Sprintf("SLD: %d", s.averageSLD),
 	)
 
-	mainScreen := lipgloss.JoinHorizontal(
-		lipgloss.Top,
-		lipgloss.JoinVertical(
-			lipgloss.Left,
-			boxStyle.Width(30).Render(positionBox),
-			boxStyle.Render(
-				lipgloss.JoinHorizontal(
-					lipgloss.Top,
-					boxStyle.Width(15).Render(currentBox),
-					boxStyle.Width(15).Render(averageBox),
+	mainScreen := lipgloss.JoinVertical(
+		lipgloss.Left,
+		lipgloss.JoinHorizontal(
+			lipgloss.Top,
+			lipgloss.JoinVertical(
+				lipgloss.Left,
+				boxStyle.Width(30).Render(positionBox),
+				boxStyle.Render(
+					lipgloss.JoinHorizontal(
+						lipgloss.Top,
+						boxStyle.Width(15).Render(currentBox),
+						boxStyle.Width(15).Render(averageBox),
+					),
 				),
 			),
-			userMessageStyle.Width(30).Render(s.userMessage),
+			tableStyle.Height(12).Render(s.lacTable.View()),
 		),
-		s.lacTable.View(),
+		userMessageStyle.Render(s.userMessage),
 	)
 
 	docStyle := lipgloss.NewStyle().MaxWidth(s.width).MaxHeight(s.height)
