@@ -3,11 +3,13 @@
 This is a simple CLI tool to take measurements of signal strength and quality from a TETRA
 radio terminal through its peripheral equipment interface (PEI).
 
-'tetra-mess' uses the proprietary AT command `AT+GCLI?' to query the TETRA terminal for
+`tetra-mess` uses the proprietary AT command `AT+GCLI?` to query the TETRA terminal for
 measurements. The command is only supported by radios from Motorola. You can find some more
 infomation about the command in some forums and blogs (german):
 - [TETRA, nützliche Einstellungen](https://berlinographics.com/funk/motorola-tetra-kein-bos/nutzliche-einstellungen/)
 - [TETRA Netzabdeckung messen](https://www.funkmeldesystem.de/threads/61764-Tetra-Netzabdeckung-messen)
+- [Tetra PEI: Software-Kommunikation AT-Komm.](https://hbaar.com/Homepage/?Funktechnik:Tetra_PEI:Software_-_Kommunikation_AT-Komm.)
+- [Digitalfunk Tetra: Motorola PEI](https://hbaar.com/Homepage/?Funktechnik:Digitalfunk_%28Tetra%29:Motorola_PEI)
 
 ## Installation
 
