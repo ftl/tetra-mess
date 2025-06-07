@@ -2,6 +2,7 @@ package tui
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
@@ -83,6 +84,12 @@ func (s MainScreen) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return s.handleKey(msg)
 	case *Logic:
 		s.logic = msg
+	case error:
+		// TODO: display any error messages in the TUI
+		log.Println(msg.Error())
+	case string:
+		// TODO: display any messages in the TUI
+		log.Println(msg)
 	case RadioData:
 		return s.handleRadioData(msg)
 	}
@@ -94,6 +101,8 @@ func (s MainScreen) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case "q", "ctrl+c":
 		return s, tea.Quit
+	case "t":
+		return s, s.logic.ToggleTrace
 	default:
 		return s, nil
 	}
