@@ -30,3 +30,39 @@ var (
 			AlignVertical(lipgloss.Bottom).
 			Reverse(true)
 )
+
+var (
+	ANSIGreen  = lipgloss.ANSIColor(28) // 6)
+	ANSIYellow = lipgloss.ANSIColor(3)
+	ANSIRed    = lipgloss.ANSIColor(196)
+)
+
+func ganToANSIColor(gan int) lipgloss.ANSIColor {
+	if gan > 1 {
+		return ANSIGreen
+	}
+	if gan > -1 {
+		return ANSIYellow
+	}
+	return ANSIRed
+}
+
+func sldToANSIColor(sld int) lipgloss.ANSIColor {
+	if sld > 6 {
+		return ANSIGreen
+	}
+	if sld == 6 {
+		return ANSIYellow
+	}
+	return ANSIRed
+}
+
+func serversToANSIColor(servers int) lipgloss.ANSIColor {
+	if servers > 2 {
+		return ANSIGreen
+	}
+	if servers == 2 {
+		return ANSIYellow
+	}
+	return ANSIRed
+}

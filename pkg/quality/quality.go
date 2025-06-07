@@ -269,3 +269,14 @@ func (m *Measurement) SignalLevelDifference() int {
 	}
 	return m.DataPoints[0].RSSI - m.DataPoints[1].RSSI
 }
+
+func (m *Measurement) UsableServers() int {
+	result := 0
+	for _, dataPoint := range m.DataPoints {
+		if !dataPoint.IsUsable() {
+			return result
+		}
+		result++
+	}
+	return result
+}

@@ -25,20 +25,22 @@ type MainScreen struct {
 	logic *Logic
 
 	// UI state
-	version     string
-	utmField    string
-	latitude    float64
-	longitude   float64
-	satellites  int
-	lastScan    string
-	currentLAC  uint32
-	currentRSSI int
-	currentCx   int
-	currentGAN  int
-	currentSLD  int
-	averageRSSI int
-	averageGAN  int
-	averageSLD  int
+	version        string
+	utmField       string
+	latitude       float64
+	longitude      float64
+	satellites     int
+	lastScan       string
+	currentLAC     uint32
+	currentRSSI    int
+	currentCx      int
+	currentGAN     int
+	currentSLD     int
+	currentServers int
+	averageCount   int
+	averageRSSI    int
+	averageGAN     int
+	averageSLD     int
 
 	// status bar content
 	userMessage   string
@@ -136,6 +138,8 @@ func (s MainScreen) handleRadioData(msg RadioData) (tea.Model, tea.Cmd) {
 	s.currentCx = bestServer.Cx
 	s.currentGAN = data.RSSIToGAN(bestServer.RSSI)
 	s.currentSLD = msg.Measurement.SignalLevelDifference()
+	s.currentServers = msg.Measurement.UsableServers()
+	s.averageCount = len(fieldReport.Measurements)
 	s.averageRSSI = fieldReport.AverageRSSI()
 	s.averageGAN = fieldReport.AverageGAN()
 	s.averageSLD = fieldReport.AverageSignalLevelDifference()
@@ -173,20 +177,25 @@ func (s MainScreen) View() string {
 		fmt.Sprintf("%s", s.currentPosition.Timestamp.Local().Format("02.01.2006 15:04:05")),
 	)
 
+	ganStyle := lipgloss.NewStyle().Foreground(ganToANSIColor(s.currentGAN)).Reverse(true)
+	sldStyle := lipgloss.NewStyle().Foreground(sldToANSIColor(s.currentSLD)).Reverse(true)
+	serverStyle := lipgloss.NewStyle().Foreground(serversToANSIColor(s.currentServers)).Reverse(true)
+
 	currentBox := lipgloss.JoinVertical(
 		lipgloss.Left,
 		headingStyle.Render("Current BS"),
 		fmt.Sprintf("LAC: %d", s.currentLAC),
-		fmt.Sprintf("RSSI: %d", s.currentRSSI),
-		fmt.Sprintf("GAN: %d", s.currentGAN),
+		ganStyle.Render(fmt.Sprintf("RSSI: %d", s.currentRSSI)),
+		ganStyle.Render(fmt.Sprintf("GAN: %d", s.currentGAN)),
 		fmt.Sprintf("Cx: %d", s.currentCx),
-		fmt.Sprintf("SLD: %d", s.currentSLD),
+		sldStyle.Render(fmt.Sprintf("SLD: %d", s.currentSLD)),
+		serverStyle.Render(fmt.Sprintf("Servers: %d", s.currentServers)),
 	)
 
 	averageBox := lipgloss.JoinVertical(
 		lipgloss.Left,
 		headingStyle.Render("Average"),
-		"",
+		fmt.Sprintf("Count: %d", s.averageCount),
 		fmt.Sprintf("RSSI: %d", s.averageRSSI),
 		fmt.Sprintf("GAN: %d", s.averageGAN),
 		"",
@@ -219,7 +228,7 @@ func (s MainScreen) View() string {
 					),
 				),
 			),
-			tableStyle.MaxHeight(13).Render(s.lacTable.View()),
+			tableStyle.MaxHeight(14).Render(s.lacTable.View()),
 		),
 		statusBarStyle.Width(s.width).Render(statusBarBox),
 	)

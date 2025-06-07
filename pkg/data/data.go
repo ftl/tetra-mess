@@ -52,6 +52,10 @@ func (dp DataPoint) IsValid() bool {
 	return dp.Satellites > 0 && dp.RSSI != NoSignal
 }
 
+func (dp DataPoint) IsUsable() bool {
+	return IsUsableRSSI(dp.RSSI)
+}
+
 func (dp DataPoint) MeasurementID() string {
 	data := fmt.Sprintf("%f-%f-%s", dp.Latitude, dp.Longitude, dp.Timestamp.Format(time.RFC3339))
 	hash := md5.Sum([]byte(data))
@@ -129,4 +133,8 @@ func RSSIToGAN(rssi int) int {
 	default:
 		return 4
 	}
+}
+
+func IsUsableRSSI(rssi int) bool {
+	return rssi >= -94
 }
