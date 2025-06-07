@@ -6,9 +6,12 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+
+	"github.com/ftl/tetra-mess/pkg/data"
 )
 
 type UIThread interface {
@@ -32,7 +35,7 @@ func NewLogic(ui UIThread, radioData <-chan RadioData, outputDir, outputFormat s
 		do:           make(chan func() error, 0),
 		radioData:    radioData,
 		outputDir:    outputDir,
-		outputFormat: outputFormat,
+		outputFormat: strings.ToLower(outputFormat),
 		traceFile:    nil,
 	}
 }
@@ -91,7 +94,31 @@ func (l *Logic) traceRadioData(rd RadioData) {
 		return
 	}
 
-	// TODO: write radioData to the trace file
+	var encoder func(data.DataPoint) string
+	switch l.outputFormat {
+	case "csv":
+		encoder = data.DataPointToCSV
+	case "json":
+		encoder = data.DataPointToJSON
+	default:
+		l.showMessage("unknown output format: %s", l.outputFormat)
+	}
+
+	for _, dataPoint := range rd.Measurement.DataPoints {
+		// TODO: add support to trace only valid data points to the TUI
+		// if onlyValid && !dataPoint.IsValid() {
+		// 	continue
+		// }
+
+		line := encoder(dataPoint)
+
+		_, err := fmt.Fprintln(l.traceFile, line)
+		if err != nil {
+			l.showMessage("error writing data point: %v", err)
+			return
+		}
+	}
+
 }
 
 func (l *Logic) startTrace() error {

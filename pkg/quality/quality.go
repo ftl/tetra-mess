@@ -17,7 +17,7 @@ func NewQualityReport() *QualityReport {
 }
 
 func (a *QualityReport) AddMeasurement(measurement Measurement) {
-	for _, dataPoint := range measurement.dataPoints {
+	for _, dataPoint := range measurement.DataPoints {
 		a.Add(dataPoint)
 	}
 }
@@ -223,49 +223,49 @@ func (s *LACReport) AverageGAN() int {
 
 type Measurement struct {
 	ID         string
-	dataPoints []data.DataPoint
+	DataPoints []data.DataPoint
 }
 
 func (m *Measurement) Add(dataPoints ...data.DataPoint) {
-	if len(dataPoints) > 0 && m.ID == "" && len(m.dataPoints) == 0 {
+	if len(dataPoints) > 0 && m.ID == "" && len(m.DataPoints) == 0 {
 		m.ID = dataPoints[0].MeasurementID()
 	}
 	for _, dataPoint := range dataPoints {
 		if dataPoint.MeasurementID() != m.ID {
 			return
 		}
-		m.dataPoints = append(m.dataPoints, dataPoint)
-		m.dataPoints = data.SortByRSSI(m.dataPoints)
+		m.DataPoints = append(m.DataPoints, dataPoint)
+		m.DataPoints = data.SortByRSSI(m.DataPoints)
 	}
 }
 
 func (m *Measurement) BestServer() data.DataPoint {
-	if len(m.dataPoints) == 0 {
+	if len(m.DataPoints) == 0 {
 		return data.ZeroDataPoint
 	}
-	return m.dataPoints[0]
+	return m.DataPoints[0]
 }
 
 func (m *Measurement) SecondServer() data.DataPoint {
-	if len(m.dataPoints) < 2 {
+	if len(m.DataPoints) < 2 {
 		return data.ZeroDataPoint
 	}
-	return m.dataPoints[1]
+	return m.DataPoints[1]
 }
 
 func (m *Measurement) BestRSSI() int {
-	if len(m.dataPoints) == 0 {
+	if len(m.DataPoints) == 0 {
 		return data.NoSignal
 	}
-	return m.dataPoints[0].RSSI
+	return m.DataPoints[0].RSSI
 }
 
 func (m *Measurement) SignalLevelDifference() int {
-	if len(m.dataPoints) < 2 {
+	if len(m.DataPoints) < 2 {
 		return 0
 	}
-	if m.dataPoints[0].RSSI == data.NoSignal || m.dataPoints[1].RSSI == data.NoSignal {
+	if m.DataPoints[0].RSSI == data.NoSignal || m.DataPoints[1].RSSI == data.NoSignal {
 		return 0
 	}
-	return m.dataPoints[0].RSSI - m.dataPoints[1].RSSI
+	return m.DataPoints[0].RSSI - m.DataPoints[1].RSSI
 }
