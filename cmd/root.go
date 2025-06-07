@@ -70,10 +70,11 @@ func runWithPEI(run func(context.Context, radio.PEI, *cobra.Command, []string)) 
 			defer tracePEIFile.Close()
 		}
 
-		portName, err := getRadioPortName()
+		portName, err := getRadioPortName(rootFlags.device)
 		if err != nil {
 			fatal(err)
 		}
+		rootFlags.device = portName
 
 		var pei radio.PEI
 		var device io.ReadWriteCloser
@@ -98,9 +99,9 @@ func runWithPEI(run func(context.Context, radio.PEI, *cobra.Command, []string)) 
 	}
 }
 
-func getRadioPortName() (string, error) {
-	if rootFlags.device != "" && strings.ToLower(rootFlags.device) != "auto" {
-		return rootFlags.device, nil
+func getRadioPortName(deviceFlag string) (string, error) {
+	if deviceFlag != "" && strings.ToLower(deviceFlag) != "auto" {
+		return deviceFlag, nil
 	}
 
 	devices, err := serialdet.List()

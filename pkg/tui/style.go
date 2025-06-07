@@ -4,15 +4,29 @@ import "github.com/charmbracelet/lipgloss"
 
 var (
 	headingStyle = lipgloss.NewStyle().
-			Align(lipgloss.Center).
+			AlignHorizontal(lipgloss.Center).
 			Bold(true)
 
 	boxStyle = lipgloss.NewStyle().
-			Align(lipgloss.Left)
+			AlignHorizontal(lipgloss.Left).
+			Padding(0, 0, 1)
 
 	tableStyle = lipgloss.NewStyle()
 
+	tableSelectedStyle = lipgloss.NewStyle()
+
+	tableHeaderStyle = lipgloss.NewStyle().
+				Bold(true).
+				Padding(0, 1)
+
+	tableCellStyle = lipgloss.NewStyle().
+			Padding(0, 1)
+
 	userMessageStyle = lipgloss.NewStyle().
-				Align(lipgloss.Left).
+				AlignHorizontal(lipgloss.Left).
 				Bold(true)
+
+	statusBarStyle = lipgloss.NewStyle().
+			AlignVertical(lipgloss.Bottom).
+			Reverse(true)
 )

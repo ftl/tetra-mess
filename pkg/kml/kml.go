@@ -2,24 +2,12 @@ package kml
 
 import (
 	"fmt"
-	"image/color"
 	"io"
 
 	"github.com/twpayne/go-kml/v3"
 
 	"github.com/ftl/tetra-mess/pkg/data"
 	"github.com/ftl/tetra-mess/pkg/quality"
-)
-
-var (
-	NoGANColor     = color.RGBA{R: 0, G: 0, B: 0, A: 255}
-	GANMinus2Color = color.RGBA{R: 139, G: 0, B: 0, A: 255}
-	GANMinus1Color = color.RGBA{R: 220, G: 20, B: 60, A: 255}
-	GAN0Color      = color.RGBA{R: 255, G: 140, B: 0, A: 255}
-	GAN1Color      = color.RGBA{R: 255, G: 215, B: 0, A: 255}
-	GAN2Color      = color.RGBA{R: 154, G: 205, B: 50, A: 255}
-	GAN3Color      = color.RGBA{R: 34, G: 139, B: 34, A: 255}
-	GAN4Color      = color.RGBA{R: 0, G: 100, B: 0, A: 255}
 )
 
 func WriteDataPointsAsKML(out io.Writer, name string, dataPoints []data.DataPoint) error {
@@ -51,7 +39,7 @@ func dataPointsToKMLPlacemarks(dataPoints []data.DataPoint) []kml.Element {
 
 func dataPointToKMLPlacemark(dataPoint data.DataPoint) kml.Element {
 	gan := data.RSSIToGAN(dataPoint.RSSI)
-	color := ganToColor(gan)
+	color := data.GANToColor(gan)
 	return kml.Placemark(
 		kml.Name(fmt.Sprintf("%d/%x %ddBm", dataPoint.LAC, dataPoint.LAC, dataPoint.RSSI)),
 		kml.Description(fmt.Sprintf("LAC: %d<br/>Carrier: %x<br/>RSSI: %ddBm<br/>Cx: %d<br/>GAN: %d", dataPoint.LAC, dataPoint.Carrier, dataPoint.RSSI, dataPoint.Cx, gan)),
@@ -81,7 +69,7 @@ func WriteFieldReportsAsKML(out io.Writer, name string, fieldReports []quality.F
 		styleID := fmt.Sprintf("gan%d-style", gan)
 		style := kml.Style(
 			kml.PolyStyle(
-				kml.Color(ganToColor(gan)),
+				kml.Color(data.GANToColor(gan)),
 				kml.Fill(true),
 			),
 		).WithID(styleID)
@@ -162,20 +150,4 @@ func fieldReportDescription(fieldReports quality.FieldReport) string {
 	result += `</table><br/>`
 
 	return result
-}
-
-func ganToColor(gan int) color.Color {
-	colors := []color.Color{
-		GANMinus2Color,
-		GANMinus1Color,
-		GAN0Color,
-		GAN1Color,
-		GAN2Color,
-		GAN3Color,
-		GAN4Color,
-	}
-	if gan <= data.NoGAN || gan > 4 {
-		return NoGANColor
-	}
-	return colors[gan+2]
 }

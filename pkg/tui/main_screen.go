@@ -16,6 +16,11 @@ type RadioData struct {
 	Measurement quality.Measurement
 }
 
+type TracingStatus struct {
+	Filename string
+	Active   bool
+}
+
 type MainScreen struct {
 	logic *Logic
 
@@ -34,7 +39,12 @@ type MainScreen struct {
 	averageRSSI int
 	averageGAN  int
 	averageSLD  int
-	userMessage string
+
+	// status bar content
+	userMessage   string
+	device        string
+	traceFilename string
+	traceActive   bool
 
 	// UI widgets
 	width    int
@@ -46,9 +56,10 @@ type MainScreen struct {
 	qualityReport   *quality.QualityReport
 }
 
-func NewMainScreen(version string) MainScreen {
+func NewMainScreen(version, device string) MainScreen {
 	return MainScreen{
 		version:         version,
+		device:          device,
 		currentPosition: data.NoPosition,
 		qualityReport:   quality.NewQualityReport(),
 
@@ -62,9 +73,9 @@ func NewMainScreen(version string) MainScreen {
 				{Title: "Max", Width: 4},
 			}),
 			table.WithStyles(table.Styles{
-				Selected: lipgloss.NewStyle(),
-				Header:   lipgloss.NewStyle().Bold(true).Padding(0, 1),
-				Cell:     lipgloss.NewStyle().Padding(0, 1),
+				Selected: tableSelectedStyle,
+				Header:   tableHeaderStyle,
+				Cell:     tableCellStyle,
 			}),
 		),
 	}
@@ -90,6 +101,8 @@ func (s MainScreen) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		s.userMessage = msg
 	case RadioData:
 		return s.handleRadioData(msg)
+	case TracingStatus:
+		return s.handleTracingStatus(msg)
 	}
 	s.lacTable, cmd = s.lacTable.Update(msg)
 	return s, cmd
@@ -144,6 +157,12 @@ func (s MainScreen) handleRadioData(msg RadioData) (tea.Model, tea.Cmd) {
 	return s, nil
 }
 
+func (s MainScreen) handleTracingStatus(msg TracingStatus) (tea.Model, tea.Cmd) {
+	s.traceFilename = msg.Filename
+	s.traceActive = msg.Active
+	return s, nil
+}
+
 func (s MainScreen) View() string {
 	positionBox := lipgloss.JoinVertical(
 		lipgloss.Left,
@@ -151,7 +170,7 @@ func (s MainScreen) View() string {
 		s.utmField,
 		fmt.Sprintf("%010.7f %010.7f", s.latitude, s.longitude),
 		fmt.Sprintf("Satellites: %d", s.currentPosition.Satellites),
-		fmt.Sprintf("%s\n", s.currentPosition.Timestamp.Local().Format("02.01.2006 15:04:05")),
+		fmt.Sprintf("%s", s.currentPosition.Timestamp.Local().Format("02.01.2006 15:04:05")),
 	)
 
 	currentBox := lipgloss.JoinVertical(
@@ -174,6 +193,17 @@ func (s MainScreen) View() string {
 		fmt.Sprintf("SLD: %d", s.averageSLD),
 	)
 
+	cellWidth := s.width / 10
+	statusCell := lipgloss.NewStyle()
+	statusBarBox := lipgloss.JoinHorizontal(
+		lipgloss.Top,
+		statusCell.Width(2*cellWidth).Render(s.device),
+		" | ",
+		statusCell.Width(4*cellWidth).Render(s.traceFilename),
+		" | ",
+		statusCell.Render(s.userMessage),
+	)
+
 	mainScreen := lipgloss.JoinVertical(
 		lipgloss.Left,
 		lipgloss.JoinHorizontal(
@@ -189,11 +219,11 @@ func (s MainScreen) View() string {
 					),
 				),
 			),
-			tableStyle.Height(12).Render(s.lacTable.View()),
+			tableStyle.MaxHeight(13).Render(s.lacTable.View()),
 		),
-		userMessageStyle.Render(s.userMessage),
+		statusBarStyle.Width(s.width).Render(statusBarBox),
 	)
 
-	docStyle := lipgloss.NewStyle().MaxWidth(s.width).MaxHeight(s.height)
-	return docStyle.Render(mainScreen + "\n")
+	screenStyle := lipgloss.NewStyle().MaxWidth(s.width).MaxHeight(s.height)
+	return screenStyle.Render(mainScreen)
 }

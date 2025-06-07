@@ -48,7 +48,7 @@ func runTUI(ctx context.Context, pei radio.PEI, cmd *cobra.Command, args []strin
 	}()
 
 	// UI
-	mainScreen := tui.NewMainScreen(version)
+	mainScreen := tui.NewMainScreen(version, rootFlags.device)
 	// p := tea.NewProgram(mainScreen)
 	p := tea.NewProgram(mainScreen, tea.WithAltScreen())
 

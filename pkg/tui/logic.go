@@ -85,8 +85,8 @@ func (l *Logic) showMessage(format string, args ...any) {
 	l.ui.Send(fmt.Sprintf(format, args...))
 }
 
-func (l *Logic) clearMessage() {
-	l.ui.Send("")
+func (l *Logic) sendStatus(filename string, active bool) {
+	l.ui.Send(TracingStatus{Filename: filename, Active: active})
 }
 
 func (l *Logic) traceRadioData(rd RadioData) {
@@ -133,7 +133,8 @@ func (l *Logic) startTrace() error {
 	}
 	l.traceFile = file
 
-	l.showMessage("tracing started: %s", filename)
+	l.showMessage("tracing started")
+	l.sendStatus(filename, true)
 
 	return nil
 }
@@ -155,5 +156,6 @@ func (l *Logic) stopTrace() error {
 		return fmt.Errorf("cannot close the trace file: %w", err)
 	}
 	l.showMessage("tracing stopped")
+	l.sendStatus("", false)
 	return nil
 }
