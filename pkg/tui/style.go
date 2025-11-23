@@ -29,6 +29,9 @@ var (
 	statusBarStyle = lipgloss.NewStyle().
 			AlignVertical(lipgloss.Bottom).
 			Reverse(true)
+
+	helpStyle = lipgloss.NewStyle().
+			Padding(0, 1)
 )
 
 var (

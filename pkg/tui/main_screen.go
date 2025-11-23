@@ -3,6 +3,8 @@ package tui
 import (
 	"fmt"
 
+	"github.com/charmbracelet/bubbles/help"
+	"github.com/charmbracelet/bubbles/key"
 	"github.com/charmbracelet/bubbles/table"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
@@ -51,6 +53,8 @@ type MainScreen struct {
 	// UI widgets
 	width    int
 	height   int
+	keyMap   KeyMap
+	help     help.Model
 	lacTable table.Model
 
 	// data
@@ -65,6 +69,8 @@ func NewMainScreen(version, device string) MainScreen {
 		currentPosition: data.NoPosition,
 		qualityReport:   quality.NewQualityReport(),
 
+		keyMap: DefaultKeyMap,
+		help:   help.New(),
 		lacTable: table.New(
 			table.WithColumns([]table.Column{
 				{Title: "LAC", Width: 5},
@@ -111,11 +117,14 @@ func (s MainScreen) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (s MainScreen) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
-	switch msg.String() {
-	case "q", "ctrl+c":
-		return s, tea.Quit
-	case "t":
+	switch {
+	case key.Matches(msg, s.keyMap.ToggleTrace):
 		return s, s.logic.ToggleTrace
+	case key.Matches(msg, s.keyMap.Help):
+		s.help.ShowAll = !s.help.ShowAll
+		return s, nil
+	case key.Matches(msg, s.keyMap.Quit):
+		return s, tea.Quit
 	default:
 		return s, nil
 	}
@@ -231,6 +240,7 @@ func (s MainScreen) View() string {
 			tableStyle.MaxHeight(14).Render(s.lacTable.View()),
 		),
 		statusBarStyle.Width(s.width).Render(statusBarBox),
+		helpStyle.Width(s.width).Render(s.help.View(s.keyMap)),
 	)
 
 	screenStyle := lipgloss.NewStyle().MaxWidth(s.width).MaxHeight(s.height)

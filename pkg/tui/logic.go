@@ -32,7 +32,7 @@ type Logic struct {
 func NewLogic(ui UIThread, radioData <-chan RadioData, outputDir, outputFormat string) *Logic {
 	return &Logic{
 		ui:           ui,
-		do:           make(chan func() error, 0),
+		do:           make(chan func() error),
 		radioData:    radioData,
 		outputDir:    outputDir,
 		outputFormat: strings.ToLower(outputFormat),
