@@ -93,7 +93,7 @@ func setupRadio(ctx context.Context, pei radio.PEI, scanInterval time.Duration, 
 }
 
 func scanForTUI(ctx context.Context, pei radio.PEI, radioData chan<- tui.RadioData) {
-	position, dataPoints := scanner.ScanSignalAndPosition(ctx, pei, logErrorf)
+	position, dataPoints := scanner.ScanSignalAndPosition(ctx, pei, logErrorf) // TODO: forward the error message to the UI to show it properly
 	measurement := quality.Measurement{}
 	measurement.Add(dataPoints...)
 	radioData <- tui.RadioData{
