@@ -38,8 +38,15 @@ func init() {
 }
 
 func runTUI(ctx context.Context, pei radio.PEI, cmd *cobra.Command, args []string) {
+	// UI
+	mainScreen := tui.NewMainScreen(version, cli.DefaultTetraFlags.Device)
+	ui := tea.NewProgram(mainScreen, tea.WithAltScreen())
+
+	app := tui.NewApp(ui, tuiFlags.outputDir, tuiFlags.outputFormat)
+	app.Start(ctx)
+
 	// radio
-	radioData, err := setupRadioForTUI(ctx, pei, tuiFlags.scanInterval)
+	err := setupRadio(ctx, pei, tuiFlags.scanInterval, app.RadioData())
 	if err != nil {
 		fatalf("cannot setup radio: %v", err)
 	}
@@ -48,35 +55,25 @@ func runTUI(ctx context.Context, pei radio.PEI, cmd *cobra.Command, args []strin
 		pei.Close()
 	}()
 
-	// UI
-	mainScreen := tui.NewMainScreen(version, cli.DefaultTetraFlags.Device)
-	// p := tea.NewProgram(mainScreen)
-	p := tea.NewProgram(mainScreen, tea.WithAltScreen())
-
-	logic := tui.NewLogic(p, radioData, tuiFlags.outputDir, tuiFlags.outputFormat)
-	logic.Start(ctx)
-
-	_, err = p.Run()
+	_, err = ui.Run()
 	if err != nil {
 		fatalf("error running TUI: %v", err)
 	}
-	p.Wait()
+	ui.Wait()
 }
 
-func setupRadioForTUI(ctx context.Context, pei radio.PEI, scanInterval time.Duration) (<-chan tui.RadioData, error) {
+func setupRadio(ctx context.Context, pei radio.PEI, scanInterval time.Duration, radioData chan<- tui.RadioData) error {
 	err := pei.ATs(ctx,
 		"ATZ",
 		"ATE0",
 		"AT+CSCS=8859-1",
 	)
 	if err != nil {
-		return nil, fmt.Errorf("cannot initilize radio: %v", err)
+		return fmt.Errorf("cannot initilize radio: %v", err)
 	}
 
 	// radio loop
-	radioData := make(chan tui.RadioData, 1)
 	go func() {
-		defer close(radioData)
 		defer fmt.Println("Radio loop closed")
 
 		scanTicker := time.NewTicker(scanInterval)
@@ -92,7 +89,7 @@ func setupRadioForTUI(ctx context.Context, pei radio.PEI, scanInterval time.Dura
 		}
 	}()
 
-	return radioData, nil
+	return nil
 }
 
 func scanForTUI(ctx context.Context, pei radio.PEI, radioData chan<- tui.RadioData) {

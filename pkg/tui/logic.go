@@ -14,94 +14,99 @@ import (
 	"github.com/ftl/tetra-mess/pkg/data"
 )
 
-type UIThread interface {
+type UI interface {
 	Send(msg tea.Msg)
 }
 
-type Logic struct {
-	ui UIThread
+type App struct {
+	ui UI
 
 	do        chan func() error
-	radioData <-chan RadioData
+	radioData chan RadioData
 
 	outputDir    string
 	outputFormat string
 	traceFile    io.WriteCloser
 }
 
-func NewLogic(ui UIThread, radioData <-chan RadioData, outputDir, outputFormat string) *Logic {
-	return &Logic{
+func NewApp(ui UI, outputDir, outputFormat string) *App {
+	return &App{
 		ui:           ui,
 		do:           make(chan func() error),
-		radioData:    radioData,
+		radioData:    make(chan RadioData, 1),
 		outputDir:    outputDir,
 		outputFormat: strings.ToLower(outputFormat),
 		traceFile:    nil,
 	}
 }
 
-func (l *Logic) Start(ctx context.Context) {
+func (a *App) Start(ctx context.Context) {
 	go func() {
-		defer l.stopTrace()
+		defer a.stopTrace()
 
-		l.ui.Send(l)
+		a.ui.Send(a)
 		for {
 			select {
 			case <-ctx.Done():
-				close(l.do)
+				close(a.do)
+				close(a.radioData)
 				return
-			case f := <-l.do:
+			case f := <-a.do:
 				err := f()
 				if err != nil {
-					l.ui.Send(err)
+					a.ui.Send(err)
 				}
-			case rd := <-l.radioData:
-				l.traceRadioData(rd)
-				l.ui.Send(rd)
+			case rd := <-a.radioData:
+				a.traceRadioData(rd)
+				a.ui.Send(rd)
 			}
 		}
 	}()
 }
 
-func (l *Logic) Do(f func() error) {
-	l.do <- f
+func (a *App) RadioData() chan<- RadioData {
+	return a.radioData
 }
 
-func (l *Logic) ToggleTrace() tea.Msg {
+func (a *App) Do(f func() error) {
+	a.do <- f
+}
+
+func (a *App) ToggleTrace() tea.Msg {
 	var f func() error
-	if l.traceFile == nil {
-		f = l.startTrace
+	if a.traceFile == nil {
+		f = a.startTrace
 	} else {
-		f = l.stopTrace
+		f = a.stopTrace
 	}
 
-	l.Do(f)
+	a.Do(f)
 	return nil
 }
 
 // Methods beyond this point MUST ONLY be called from within the goroutine!
 
-func (l *Logic) showMessage(format string, args ...any) {
-	l.ui.Send(fmt.Sprintf(format, args...))
+func (a *App) showMessage(format string, args ...any) {
+	a.ui.Send(fmt.Sprintf(format, args...))
 }
 
-func (l *Logic) sendStatus(filename string, active bool) {
-	l.ui.Send(TracingStatus{Filename: filename, Active: active})
+func (a *App) sendStatus(filename string, active bool) {
+	a.ui.Send(TracingStatus{Filename: filename, Active: active})
 }
 
-func (l *Logic) traceRadioData(rd RadioData) {
-	if l.traceFile == nil {
+func (a *App) traceRadioData(rd RadioData) {
+	if a.traceFile == nil {
 		return
 	}
 
 	var encoder func(data.DataPoint) string
-	switch l.outputFormat {
+	switch a.outputFormat {
 	case "csv":
 		encoder = data.DataPointToCSV
 	case "json":
 		encoder = data.DataPointToJSON
 	default:
-		l.showMessage("unknown output format: %s", l.outputFormat)
+		a.showMessage("unknown output format: %s", a.outputFormat)
 	}
 
 	for _, dataPoint := range rd.Measurement.DataPoints {
@@ -112,50 +117,50 @@ func (l *Logic) traceRadioData(rd RadioData) {
 
 		line := encoder(dataPoint)
 
-		_, err := fmt.Fprintln(l.traceFile, line)
+		_, err := fmt.Fprintln(a.traceFile, line)
 		if err != nil {
-			l.showMessage("error writing data point: %v", err)
+			a.showMessage("error writing data point: %v", err)
 			return
 		}
 	}
 
 }
 
-func (l *Logic) startTrace() error {
-	if l.traceFile != nil {
+func (a *App) startTrace() error {
+	if a.traceFile != nil {
 		return nil
 	}
 
-	filename := l.newTraceFilename()
+	filename := a.newTraceFilename()
 	file, err := os.Create(filename)
 	if err != nil {
 		return fmt.Errorf("cannot create trace file: %w", err)
 	}
-	l.traceFile = file
+	a.traceFile = file
 
-	l.showMessage("tracing started")
-	l.sendStatus(filename, true)
+	a.showMessage("tracing started")
+	a.sendStatus(filename, true)
 
 	return nil
 }
 
-func (l *Logic) newTraceFilename() string {
-	filename := fmt.Sprintf("trace-%s.%s", time.Now().Format("20060102T150405"), l.outputFormat)
-	return filepath.Join(l.outputDir, filename)
+func (a *App) newTraceFilename() string {
+	filename := fmt.Sprintf("trace-%s.%s", time.Now().Format("20060102T150405"), a.outputFormat)
+	return filepath.Join(a.outputDir, filename)
 }
 
-func (l *Logic) stopTrace() error {
-	if l.traceFile == nil {
+func (a *App) stopTrace() error {
+	if a.traceFile == nil {
 		return nil
 	}
 
-	err := l.traceFile.Close()
-	l.traceFile = nil
+	err := a.traceFile.Close()
+	a.traceFile = nil
 
 	if err != nil {
 		return fmt.Errorf("cannot close the trace file: %w", err)
 	}
-	l.showMessage("tracing stopped")
-	l.sendStatus("", false)
+	a.showMessage("tracing stopped")
+	a.sendStatus("", false)
 	return nil
 }

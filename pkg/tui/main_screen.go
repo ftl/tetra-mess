@@ -24,7 +24,7 @@ type TracingStatus struct {
 }
 
 type MainScreen struct {
-	logic *Logic
+	logic *App
 
 	// UI state
 	version        string
@@ -101,7 +101,7 @@ func (s MainScreen) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		s.height = msg.Height
 	case tea.KeyMsg:
 		return s.handleKey(msg)
-	case *Logic:
+	case *App:
 		s.logic = msg
 	case error:
 		s.userMessage = fmt.Sprintf("E: %s", msg.Error())
