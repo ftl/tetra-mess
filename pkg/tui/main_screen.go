@@ -13,18 +13,13 @@ import (
 	"github.com/ftl/tetra-mess/pkg/quality"
 )
 
-type RadioData struct {
-	Position    data.Position
-	Measurement quality.Measurement
-}
-
 type TracingStatus struct {
 	Filename string
 	Active   bool
 }
 
 type MainScreen struct {
-	logic *App
+	app *App
 
 	// UI state
 	version        string
@@ -102,7 +97,7 @@ func (s MainScreen) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyMsg:
 		return s.handleKey(msg)
 	case *App:
-		s.logic = msg
+		s.app = msg
 	case error:
 		s.userMessage = fmt.Sprintf("E: %s", msg.Error())
 	case string:
@@ -119,7 +114,7 @@ func (s MainScreen) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (s MainScreen) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch {
 	case key.Matches(msg, s.keyMap.ToggleTrace):
-		return s, s.logic.ToggleTrace
+		return s, s.app.ToggleTrace
 	case key.Matches(msg, s.keyMap.Help):
 		s.help.ShowAll = !s.help.ShowAll
 		return s, nil

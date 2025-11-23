@@ -12,7 +12,13 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 
 	"github.com/ftl/tetra-mess/pkg/data"
+	"github.com/ftl/tetra-mess/pkg/quality"
 )
+
+type RadioData struct {
+	Position    data.Position
+	Measurement quality.Measurement
+}
 
 type UI interface {
 	Send(msg tea.Msg)
