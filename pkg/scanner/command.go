@@ -8,8 +8,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/ftl/tetra-cli/pkg/radio"
+
 	"github.com/ftl/tetra-mess/pkg/data"
-	"github.com/ftl/tetra-mess/pkg/radio"
 )
 
 var cellListResponseHeader = regexp.MustCompile(`^\+GCLI: (\d+)$`)

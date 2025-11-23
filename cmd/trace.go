@@ -9,10 +9,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ftl/tetra-cli/pkg/radio"
 	"github.com/spf13/cobra"
 
 	"github.com/ftl/tetra-mess/pkg/data"
-	"github.com/ftl/tetra-mess/pkg/radio"
 	"github.com/ftl/tetra-mess/pkg/scanner"
 )
 

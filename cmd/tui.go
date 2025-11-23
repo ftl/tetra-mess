@@ -6,11 +6,13 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/ftl/tetra-cli/pkg/cli"
+	"github.com/ftl/tetra-cli/pkg/radio"
+	"github.com/spf13/cobra"
+
 	"github.com/ftl/tetra-mess/pkg/quality"
-	"github.com/ftl/tetra-mess/pkg/radio"
 	"github.com/ftl/tetra-mess/pkg/scanner"
 	"github.com/ftl/tetra-mess/pkg/tui"
-	"github.com/spf13/cobra"
 )
 
 const defaultTUIScanInterval = 10 * time.Second
@@ -47,7 +49,7 @@ func runTUI(ctx context.Context, pei radio.PEI, cmd *cobra.Command, args []strin
 	}()
 
 	// UI
-	mainScreen := tui.NewMainScreen(version, rootFlags.device)
+	mainScreen := tui.NewMainScreen(version, cli.DefaultTetraFlags.Device)
 	// p := tea.NewProgram(mainScreen)
 	p := tea.NewProgram(mainScreen, tea.WithAltScreen())
 

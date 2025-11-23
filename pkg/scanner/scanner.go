@@ -6,8 +6,9 @@ import (
 
 	"github.com/ftl/tetra-pei/ctrl"
 
+	"github.com/ftl/tetra-cli/pkg/radio"
+
 	"github.com/ftl/tetra-mess/pkg/data"
-	"github.com/ftl/tetra-mess/pkg/radio"
 )
 
 type Logger func(string, ...any)

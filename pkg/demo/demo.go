@@ -1,4 +1,4 @@
-package radio
+package demo
 
 import (
 	"context"
@@ -23,7 +23,7 @@ func (p *DemoPEI) Closed() bool {
 }
 
 func (p *DemoPEI) WaitUntilClosed(ctx context.Context) {
-	return
+	// no-op
 }
 
 func (p *DemoPEI) AddIndication(prefix string, trailingLines int, handler func(lines []string)) error {
