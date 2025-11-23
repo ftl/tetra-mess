@@ -211,7 +211,7 @@ func (s MainScreen) View() string {
 		fmt.Sprintf("SLD: %d", s.averageSLD),
 	)
 
-	cellWidth := s.width / 10
+	cellWidth := (s.width - 6) / 10
 	statusCell := lipgloss.NewStyle()
 	statusBarBox := lipgloss.JoinHorizontal(
 		lipgloss.Top,
@@ -219,7 +219,7 @@ func (s MainScreen) View() string {
 		" | ",
 		statusCell.Width(4*cellWidth).Render(s.traceFilename),
 		" | ",
-		statusCell.Render(s.userMessage),
+		statusCell.Width(4*cellWidth).Render(s.userMessage),
 	)
 
 	mainScreen := lipgloss.JoinVertical(
