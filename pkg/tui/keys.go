@@ -12,7 +12,7 @@ var DefaultKeyMap = KeyMap{
 		key.WithHelp("h", "help"),
 	),
 	Quit: key.NewBinding(
-		key.WithKeys("q", "ctrl-c"),
+		key.WithKeys("q", "ctrl+c"),
 		key.WithHelp("q", "exit tetra-mess"),
 	),
 }
