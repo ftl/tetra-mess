@@ -2,120 +2,78 @@ package radio
 
 import (
 	"context"
-	"fmt"
 	"io"
-	"log"
+	"sync"
 	"time"
 
 	"github.com/ftl/tetra-cli/pkg/radio"
 	"github.com/ftl/tetra-pei/serial"
-
-	"github.com/ftl/tetra-mess/pkg/data"
-	"github.com/ftl/tetra-mess/pkg/quality"
-	"github.com/ftl/tetra-mess/pkg/scanner"
 )
 
-type DataPoint struct {
-	Position    data.Position
-	Measurement quality.Measurement
+type Initializer interface {
+	Initialize(context.Context, radio.PEI) error
 }
 
-type State int
-
-const (
-	Disconnected State = iota
-	Opening
-	Running
-	Closing
-)
+type LoopFunc func(context.Context, radio.PEI)
 
 type Radio struct {
-	state State
+	device         string
+	pei            radio.PEI
+	tracePEIWriter io.Writer
 
-	stateOut chan<- State
-	dataOut  chan<- DataPoint
-
-	closing chan struct{}
-	closed  chan struct{}
-
-	device       string
-	pei          radio.PEI
-	tracePEIFile io.Writer
+	loopCtx    context.Context
+	loopCancel context.CancelFunc
+	loopGroup  *sync.WaitGroup
 
 	scanInterval time.Duration
 	scanTimeout  time.Duration
 }
 
-func New(stateOut chan<- State, dataOut chan<- DataPoint, scanInterval time.Duration) *Radio {
-	return &Radio{
-		state:        Disconnected,
-		stateOut:     stateOut,
-		dataOut:      dataOut,
-		scanInterval: scanInterval,
-		scanTimeout:  250 * time.Millisecond,
+func Open(ctx context.Context, device string, initializer Initializer) (*Radio, error) {
+	opener := func() (radio.PEI, error) {
+		return serial.Open(device)
 	}
+	return open(ctx, device, initializer, opener)
 }
 
-func (r *Radio) Open(ctx context.Context, device string) error {
-	pei, err := serial.Open(device)
+func OpenWithTrace(ctx context.Context, device string, initializer Initializer, tracePEIWriter io.Writer) (*Radio, error) {
+	opener := func() (radio.PEI, error) {
+		return serial.OpenWithTrace(device, tracePEIWriter)
+	}
+	return open(ctx, device, initializer, opener)
+}
+
+func open(ctx context.Context, device string, initializer Initializer, opener func() (radio.PEI, error)) (*Radio, error) {
+	pei, err := opener()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	r.pei = pei
-	r.device = device
-	r.transitionTo(Opening)
+	loopCtx, loopCancel := context.WithCancel(context.Background())
 
-	err = r.initialize(ctx)
+	result := &Radio{
+		device: device,
+		pei:    pei,
+
+		loopCtx:    loopCtx,
+		loopCancel: loopCancel,
+		loopGroup:  new(sync.WaitGroup),
+	}
+	err = result.initialize(ctx, initializer)
 	if err != nil {
-		r.transitionTo(Disconnected)
-	}
-	return err
-}
-
-func (f *Radio) OpenWithTrace(ctx context.Context, portName string, tracePEIFile io.Writer) error {
-	return fmt.Errorf("not yet implemented")
-}
-
-func (f *Radio) Close(ctx context.Context) {
-	select {
-	case <-f.closing:
-		return
-	case <-f.closed:
-		return
-	default:
+		return nil, err
 	}
 
-	f.transitionTo(Closing)
-
-	close(f.closing)
-	<-f.closed
-
-	err := f.shutdownRadio(ctx)
-	if err != nil {
-		f.reportRadioError("cannot shutdown radio properly: %v", err)
-	}
-
-	f.transitionTo(Disconnected)
+	return result, nil
 }
 
-func (r *Radio) transitionTo(nextState State) {
-	switch nextState {
-	case Disconnected:
-		r.pei = nil
-		r.device = ""
-	}
-
-	r.state = nextState
-	r.stateOut <- r.state
-}
-
-func (r *Radio) initialize(ctx context.Context) error {
+func (r *Radio) initialize(ctx context.Context, initializer Initializer) error {
 	err := r.pei.ClearSyntaxErrors(ctx)
 	if err != nil {
 		return err
 	}
 
+	// initialize the PEI
 	err = r.pei.ATs(ctx,
 		"ATZ",
 		"ATE0",
@@ -125,56 +83,60 @@ func (r *Radio) initialize(ctx context.Context) error {
 		return err
 	}
 
-	r.closing = make(chan struct{})
-	r.closed = make(chan struct{})
-	go r.scanLoop()
-
-	r.transitionTo(Running)
-	return nil
+	if initializer == nil {
+		return nil
+	}
+	return initializer.Initialize(ctx, r.pei)
 }
 
-func (r *Radio) shutdownRadio(ctx context.Context) error {
+func (r *Radio) Close(ctx context.Context) error {
+	if !r.Connected() {
+		return nil
+	}
+
+	// stop the running loops and wait until they are stopped
+	r.loopCancel()
+	r.loopGroup.Wait()
+
+	// reset the PEI to defaults
 	_, err := r.pei.AT(ctx, "ATZ")
 	if err != nil {
 		return err
 	}
+
 	r.pei.Close()
 	r.pei.WaitUntilClosed(ctx)
+	r.pei = nil
+
 	return nil
 }
 
-func (r *Radio) scanLoop() {
-	defer close(r.closed)
-	defer log.Println("Radio scan loop closed")
-
-	scanTicker := time.NewTicker(r.scanInterval)
-	defer scanTicker.Stop()
-
-	for {
-		select {
-		case <-r.closing:
-			return
-		case <-scanTicker.C:
-			ctx, cancel := context.WithTimeout(context.Background(), r.scanTimeout)
-			defer cancel()
-
-			r.scan(ctx)
-		}
-	}
+func (r *Radio) Connected() bool {
+	return r.pei != nil && !r.pei.Closed()
 }
 
-func (r *Radio) scan(ctx context.Context) {
-	position, dataPoints := scanner.ScanSignalAndPosition(ctx, r.pei, r.reportRadioError)
-
-	measurement := quality.Measurement{}
-	measurement.Add(dataPoints...)
-
-	r.dataOut <- DataPoint{
-		Position:    position,
-		Measurement: measurement,
-	}
+func (r *Radio) AddIndication(prefix string, trailingLines int, handler func(lines []string)) error {
+	return r.pei.AddIndication(prefix, trailingLines, handler)
 }
 
-func (r *Radio) reportRadioError(format string, args ...any) {
-	// TODO: forward the error message to the UI to show it properly
+func (r *Radio) Request(ctx context.Context, request string) ([]string, error) {
+	return r.Request(ctx, request)
+}
+
+func (r *Radio) AT(ctx context.Context, request string) ([]string, error) {
+	return r.AT(ctx, request)
+}
+
+func (r *Radio) ATs(ctx context.Context, requests ...string) error {
+	return r.ATs(ctx, requests...)
+}
+
+func (r *Radio) RunLoop(loop LoopFunc) {
+	if !r.Connected() {
+		return
+	}
+
+	r.loopGroup.Go(func() {
+		loop(r.loopCtx, r.pei)
+	})
 }

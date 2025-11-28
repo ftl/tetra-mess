@@ -4,14 +4,19 @@ import (
 	"context"
 	"time"
 
+	"github.com/ftl/tetra-cli/pkg/radio"
 	"github.com/ftl/tetra-pei/ctrl"
 
-	"github.com/ftl/tetra-cli/pkg/radio"
-
 	"github.com/ftl/tetra-mess/pkg/data"
+	"github.com/ftl/tetra-mess/pkg/quality"
 )
 
 type Logger func(string, ...any)
+
+type DataPoint struct {
+	Position    data.Position
+	Measurement quality.Measurement
+}
 
 func ScanSignalAndPosition(ctx context.Context, pei radio.PEI, log Logger) (data.Position, []data.DataPoint) {
 	lat, lon, sats, timestamp, err := ctrl.RequestGPSPosition(ctx, pei)
