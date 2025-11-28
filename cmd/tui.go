@@ -60,6 +60,9 @@ func runTUI(ctx context.Context, pei radio.PEI, cmd *cobra.Command, args []strin
 		fmt.Println("Closing radio connection...")
 		radio.Close()
 	}()
+	radio.OnDisconnect(func() {
+		ui.Send(tui.ConnectionClosed{})
+	})
 	radio.RunLoop(loop.Run)
 
 	_, err = ui.Run()

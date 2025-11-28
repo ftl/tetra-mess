@@ -11,7 +11,7 @@ require (
 	github.com/charmbracelet/bubbletea v1.3.5
 	github.com/charmbracelet/lipgloss v1.1.0
 	github.com/ftl/tetra-cli v1.1.0
-	github.com/ftl/tetra-pei v1.4.2
+	github.com/ftl/tetra-pei v1.4.3
 	github.com/im7mortal/UTM v1.4.0
 	github.com/spf13/cobra v1.9.1
 	github.com/tkrajina/gpxgo v1.4.0

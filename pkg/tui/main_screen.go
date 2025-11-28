@@ -18,6 +18,8 @@ type TracingStatus struct {
 	Active   bool
 }
 
+type ConnectionClosed struct{}
+
 type MainScreen struct {
 	app *App
 
@@ -106,6 +108,8 @@ func (s MainScreen) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		return s.handleRadioData(msg)
 	case TracingStatus:
 		return s.handleTracingStatus(msg)
+	case ConnectionClosed:
+		return s, tea.Quit
 	}
 	s.lacTable, cmd = s.lacTable.Update(msg)
 	return s, cmd

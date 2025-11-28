@@ -7,7 +7,8 @@ import (
 )
 
 type DemoPEI struct {
-	closed bool
+	closed             bool
+	disconnectCallback func()
 }
 
 func NewDemo() *DemoPEI {
@@ -16,6 +17,9 @@ func NewDemo() *DemoPEI {
 
 func (p *DemoPEI) Close() {
 	p.closed = true
+	if p.disconnectCallback != nil {
+		p.disconnectCallback()
+	}
 }
 
 func (p *DemoPEI) Closed() bool {
@@ -24,6 +28,10 @@ func (p *DemoPEI) Closed() bool {
 
 func (p *DemoPEI) WaitUntilClosed(ctx context.Context) {
 	// no-op
+}
+
+func (p *DemoPEI) OnDisconnect(callback func()) {
+	p.disconnectCallback = callback
 }
 
 func (p *DemoPEI) AddIndication(prefix string, trailingLines int, handler func(lines []string)) error {
