@@ -28,8 +28,8 @@ github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/erikgeiser/coninput v0.0.0-20211004153227-1c3628e74d0f h1:Y/CXytFA4m6baUTXGLOoWe4PQhGxaX0KpnayAqC48p4=
 github.com/erikgeiser/coninput v0.0.0-20211004153227-1c3628e74d0f/go.mod h1:vw97MGsxSvLiUE2X8qFplwetxpGLQrlU1Q9AUEIzCaM=
-github.com/ftl/tetra-cli v1.0.0 h1:LKGW2mR11obzPNLz0RbZpyk4S9iXig6K2eT/3X1aYaU=
-github.com/ftl/tetra-cli v1.0.0/go.mod h1:0jERWM1SduLuOdZXp4kfK7ighYckeD87+pjClahsiFQ=
+github.com/ftl/tetra-cli v1.1.0 h1:Y0vfQVV4eirw6Oqa65ZDl0esliO+nbvvJ7lPFbbmOUc=
+github.com/ftl/tetra-cli v1.1.0/go.mod h1:0jERWM1SduLuOdZXp4kfK7ighYckeD87+pjClahsiFQ=
 github.com/ftl/tetra-pei v1.4.2 h1:X63mjY+2a4KrwgOTWJ47XMMKsSnD8NzZDZ/KWb9yh+k=
 github.com/ftl/tetra-pei v1.4.2/go.mod h1:blOLH8uF6NC9fKyGed2o2SbNX4wrj761JVjr8qnF6Og=
 github.com/hedhyw/Go-Serial-Detector v1.0.0-rc1 h1:711NlOyZRHTfPCkK+ohh86eUPDL12Hi3MmGxtRkdKio=

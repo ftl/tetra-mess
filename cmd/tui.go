@@ -10,7 +10,6 @@ import (
 	"github.com/ftl/tetra-cli/pkg/radio"
 	"github.com/spf13/cobra"
 
-	messradio "github.com/ftl/tetra-mess/pkg/radio"
 	"github.com/ftl/tetra-mess/pkg/scanner"
 	"github.com/ftl/tetra-mess/pkg/tui"
 )
@@ -51,22 +50,17 @@ func runTUI(ctx context.Context, pei radio.PEI, cmd *cobra.Command, args []strin
 		timestamp := fmt.Sprintf("[%s] ", time.Now().Format(time.TimeOnly))
 		ui.Send(fmt.Sprintf(timestamp+format, args...))
 	}
-	radio, err := messradio.Open(ctx, pei, nil)
 	loop := scanner.NewScanLoop(tuiFlags.scanInterval, defaultTUIScanTimeout, app.RadioData(), radioLog)
-	radio.RunLoop(loop.Run)
 
+	radio, err := radio.Open(ctx, pei, nil)
 	if err != nil {
 		fatalf("cannot setup radio: %v", err)
 	}
 	defer func() {
 		fmt.Println("Closing radio connection...")
-		closeCtx, cancel := context.WithTimeout(context.Background(), cli.DefaultTetraFlags.CommandTimeout)
-		defer cancel()
-		err := radio.Close(closeCtx)
-		if err != nil {
-			fmt.Println(err)
-		}
+		radio.Close()
 	}()
+	radio.RunLoop(loop.Run)
 
 	_, err = ui.Run()
 	if err != nil {
