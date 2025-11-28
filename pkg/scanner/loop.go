@@ -10,16 +10,16 @@ import (
 )
 
 type ScanLoop struct {
-	dataOut      chan DataPoint
-	errorLog     Logger
+	out          chan<- DataPoint
+	logger       Logger
 	scanInterval time.Duration
 	scanTimeout  time.Duration
 }
 
-func NewScanLoop(scanInterval, scanTimeout time.Duration, logger Logger) *ScanLoop {
+func NewScanLoop(scanInterval, scanTimeout time.Duration, out chan<- DataPoint, logger Logger) *ScanLoop {
 	return &ScanLoop{
-		dataOut:      make(chan DataPoint, 1),
-		errorLog:     logger,
+		out:          out,
+		logger:       logger,
 		scanInterval: scanInterval,
 		scanTimeout:  scanTimeout,
 	}
@@ -34,12 +34,16 @@ func (l *ScanLoop) Run(ctx context.Context, pei radio.PEI) {
 		case <-ctx.Done():
 			return
 		case <-scanTicker.C:
-			l.scan(ctx, pei)
+			select {
+			case l.out <- l.scan(ctx, pei):
+			default:
+				l.log("cannot report scan data point, output channel not ready")
+			}
 		}
 	}
 }
 
-func (l *ScanLoop) scan(ctx context.Context, pei radio.PEI) {
+func (l *ScanLoop) scan(ctx context.Context, pei radio.PEI) DataPoint {
 	ctx, cancel := context.WithTimeout(ctx, l.scanTimeout)
 	defer cancel()
 
@@ -48,21 +52,15 @@ func (l *ScanLoop) scan(ctx context.Context, pei radio.PEI) {
 	measurement := quality.Measurement{}
 	measurement.Add(dataPoints...)
 
-	dataPoint := DataPoint{
+	return DataPoint{
 		Position:    position,
 		Measurement: measurement,
-	}
-
-	select {
-	case l.dataOut <- dataPoint:
-	default:
-		l.log("cannot report scan data point, output channel not ready")
 	}
 }
 
 func (l *ScanLoop) log(format string, args ...any) {
-	if l.errorLog == nil {
+	if l.logger == nil {
 		return
 	}
-	l.errorLog(format, args...)
+	l.logger(format, args...)
 }

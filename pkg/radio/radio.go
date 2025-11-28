@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/ftl/tetra-cli/pkg/radio"
-	"github.com/ftl/tetra-pei/serial"
 )
 
 type Initializer interface {
@@ -17,7 +16,6 @@ type Initializer interface {
 type LoopFunc func(context.Context, radio.PEI)
 
 type Radio struct {
-	device         string
 	pei            radio.PEI
 	tracePEIWriter io.Writer
 
@@ -29,37 +27,17 @@ type Radio struct {
 	scanTimeout  time.Duration
 }
 
-func Open(ctx context.Context, device string, initializer Initializer) (*Radio, error) {
-	opener := func() (radio.PEI, error) {
-		return serial.Open(device)
-	}
-	return open(ctx, device, initializer, opener)
-}
-
-func OpenWithTrace(ctx context.Context, device string, initializer Initializer, tracePEIWriter io.Writer) (*Radio, error) {
-	opener := func() (radio.PEI, error) {
-		return serial.OpenWithTrace(device, tracePEIWriter)
-	}
-	return open(ctx, device, initializer, opener)
-}
-
-func open(ctx context.Context, device string, initializer Initializer, opener func() (radio.PEI, error)) (*Radio, error) {
-	pei, err := opener()
-	if err != nil {
-		return nil, err
-	}
-
+func Open(ctx context.Context, pei radio.PEI, initializer Initializer) (*Radio, error) {
 	loopCtx, loopCancel := context.WithCancel(context.Background())
 
 	result := &Radio{
-		device: device,
-		pei:    pei,
+		pei: pei,
 
 		loopCtx:    loopCtx,
 		loopCancel: loopCancel,
 		loopGroup:  new(sync.WaitGroup),
 	}
-	err = result.initialize(ctx, initializer)
+	err := result.initialize(ctx, initializer)
 	if err != nil {
 		return nil, err
 	}
