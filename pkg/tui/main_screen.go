@@ -157,11 +157,11 @@ func (s MainScreen) handleRadioData(msg RadioData) (tea.Model, tea.Cmd) {
 	for i, report := range lacReports {
 		rows[i] = table.Row{
 			fmt.Sprintf("%d", report.LAC),
-			fmt.Sprintf("%d", report.CurrentRSSI()),
-			fmt.Sprintf("%d", report.CurrentGAN()),
-			fmt.Sprintf("%d", report.MinRSSI),
-			fmt.Sprintf("%d", report.AverageRSSI()),
-			fmt.Sprintf("%d", report.MaxRSSI),
+			fmt.Sprintf("% 4d", report.CurrentRSSI()),
+			fmt.Sprintf("% 3d", report.CurrentGAN()),
+			fmt.Sprintf("% 3d", report.MinRSSI),
+			fmt.Sprintf("% 3d", report.AverageRSSI()),
+			fmt.Sprintf("% 3d", report.MaxRSSI),
 		}
 	}
 	s.lacTable.SetRows(rows)
@@ -185,6 +185,10 @@ func (s MainScreen) View() string {
 		fmt.Sprintf("%s", s.currentPosition.Timestamp.Local().Format("02.01.2006 15:04:05")),
 	)
 
+	positionStyle := lipgloss.NewStyle().Inherit(boxStyle).Padding(0, 1)
+	if s.currentPosition.Satellites == 0 {
+		positionStyle = positionStyle.Foreground(ANSIRed).Reverse(true)
+	}
 	ganStyle := lipgloss.NewStyle().Foreground(ganToANSIColor(s.currentGAN)).Reverse(true)
 	sldStyle := lipgloss.NewStyle().Foreground(sldToANSIColor(s.currentSLD)).Reverse(true)
 	serverStyle := lipgloss.NewStyle().Foreground(serversToANSIColor(s.currentServers)).Reverse(true)
@@ -192,22 +196,23 @@ func (s MainScreen) View() string {
 	currentBox := lipgloss.JoinVertical(
 		lipgloss.Left,
 		headingStyle.Render("Current BS"),
-		fmt.Sprintf("LAC: %d", s.currentLAC),
-		ganStyle.Render(fmt.Sprintf("RSSI: %d", s.currentRSSI)),
-		ganStyle.Render(fmt.Sprintf("GAN: %d", s.currentGAN)),
-		fmt.Sprintf("Cx: %d", s.currentCx),
-		sldStyle.Render(fmt.Sprintf("SLD: %d", s.currentSLD)),
-		serverStyle.Render(fmt.Sprintf("Servers: %d", s.currentServers)),
+		fmt.Sprintf("LAC: % 7d", s.currentLAC),
+		ganStyle.Render(fmt.Sprintf("RSSI: % 6d", s.currentRSSI)),
+		ganStyle.Render(fmt.Sprintf("GAN: % 7d", s.currentGAN)),
+		fmt.Sprintf("Cx: % 8d", s.currentCx),
+		sldStyle.Render(fmt.Sprintf("SLD: % 7d", s.currentSLD)),
+		serverStyle.Render(fmt.Sprintf("Servers: %3d", s.currentServers)),
 	)
 
 	averageBox := lipgloss.JoinVertical(
 		lipgloss.Left,
 		headingStyle.Render("Average"),
-		fmt.Sprintf("Count: %d", s.averageCount),
-		fmt.Sprintf("RSSI: %d", s.averageRSSI),
-		fmt.Sprintf("GAN: %d", s.averageGAN),
+		fmt.Sprintf("Count: % 5d", s.averageCount),
+		fmt.Sprintf("RSSI: % 6d", s.averageRSSI),
+		fmt.Sprintf("GAN: % 7d", s.averageGAN),
 		"",
-		fmt.Sprintf("SLD: %d", s.averageSLD),
+		fmt.Sprintf("SLD: % 7d", s.averageSLD),
+		"",
 	)
 
 	cellWidth := (s.width - 6) / 10
@@ -227,16 +232,16 @@ func (s MainScreen) View() string {
 			lipgloss.Top,
 			lipgloss.JoinVertical(
 				lipgloss.Left,
-				boxStyle.Width(30).Render(positionBox),
-				boxStyle.Render(
-					lipgloss.JoinHorizontal(
-						lipgloss.Top,
-						boxStyle.Width(15).Render(currentBox),
-						boxStyle.Width(15).Render(averageBox),
-					),
+				positionStyle.Width(30).Render(positionBox),
+				lipgloss.JoinHorizontal(
+					lipgloss.Top,
+					boxStyle.Width(14).Render(currentBox),
+					boxStyle.Width(14).Render(averageBox),
 				),
 			),
-			tableStyle.MaxHeight(14).Render(s.lacTable.View()),
+			boxStyle.Width(38).Render(
+				tableStyle.MaxHeight(14).Render(s.lacTable.View()),
+			),
 		),
 		statusBarStyle.Width(s.width).Render(statusBarBox),
 		helpStyle.Width(s.width).Render(s.help.View(s.keyMap)),

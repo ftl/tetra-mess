@@ -9,7 +9,8 @@ var (
 
 	boxStyle = lipgloss.NewStyle().
 			AlignHorizontal(lipgloss.Left).
-			Padding(0, 0, 1)
+			Padding(0, 1).
+			Border(lipgloss.RoundedBorder(), true, true, true, true)
 
 	tableStyle = lipgloss.NewStyle()
 
@@ -35,7 +36,7 @@ var (
 )
 
 var (
-	ANSIGreen  = lipgloss.ANSIColor(28) // 6)
+	ANSIGreen  = lipgloss.ANSIColor(28)
 	ANSIYellow = lipgloss.ANSIColor(3)
 	ANSIRed    = lipgloss.ANSIColor(196)
 )
