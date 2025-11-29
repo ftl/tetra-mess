@@ -11,7 +11,10 @@ import (
 
 	"github.com/ftl/tetra-mess/pkg/data"
 	"github.com/ftl/tetra-mess/pkg/quality"
+	"github.com/ftl/tetra-mess/pkg/scanner"
 )
+
+type RadioData = scanner.DataPoint
 
 type TracingStatus struct {
 	Filename string

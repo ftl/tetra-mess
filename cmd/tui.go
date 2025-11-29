@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -10,12 +9,13 @@ import (
 	"github.com/ftl/tetra-cli/pkg/radio"
 	"github.com/spf13/cobra"
 
-	"github.com/ftl/tetra-mess/pkg/scanner"
 	"github.com/ftl/tetra-mess/pkg/tui"
 )
 
-const defaultTUIScanInterval = 10 * time.Second
-const defaultTUIScanTimeout = 5 * time.Second
+const (
+	defaultTUIScanInterval = 10 * time.Second
+	defaultTUIScanTimeout  = 5 * time.Second
+)
 
 var tuiFlags = struct {
 	scanInterval time.Duration
@@ -42,28 +42,11 @@ func runTUI(ctx context.Context, pei radio.PEI, cmd *cobra.Command, args []strin
 	mainScreen := tui.NewMainScreen(version, cli.DefaultTetraFlags.Device)
 	ui := tea.NewProgram(mainScreen, tea.WithAltScreen())
 
-	app := tui.NewApp(ui, tuiFlags.outputDir, tuiFlags.outputFormat)
-	app.Start(ctx)
-
-	// radio
-	radioLog := func(format string, args ...any) {
-		timestamp := fmt.Sprintf("[%s] ", time.Now().Format(time.TimeOnly))
-		ui.Send(fmt.Sprintf(timestamp+format, args...))
-	}
-	loop := scanner.NewScanLoop(tuiFlags.scanInterval, defaultTUIScanTimeout, app.RadioData(), radioLog)
-
-	radio, err := radio.Open(ctx, pei, nil)
+	app, err := tui.NewApp(ctx, ui, pei, tuiFlags.outputDir, tuiFlags.outputFormat, tuiFlags.scanInterval, defaultTUIScanTimeout)
 	if err != nil {
-		fatalf("cannot setup radio: %v", err)
+		fatalf("error creating the app: %v", err)
 	}
-	defer func() {
-		fmt.Println("Closing radio connection...")
-		radio.Close()
-	}()
-	radio.OnDisconnect(func() {
-		ui.Send(tui.ConnectionClosed{})
-	})
-	radio.RunLoop(loop.Run)
+	app.Start(ctx)
 
 	_, err = ui.Run()
 	if err != nil {

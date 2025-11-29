@@ -10,42 +10,64 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/ftl/tetra-cli/pkg/radio"
 
 	"github.com/ftl/tetra-mess/pkg/data"
 	"github.com/ftl/tetra-mess/pkg/scanner"
 )
-
-type RadioData = scanner.DataPoint
 
 type UI interface {
 	Send(msg tea.Msg)
 }
 
 type App struct {
-	ui UI
+	ui    UI
+	radio *radio.Radio
 
 	do        chan func() error
-	radioData chan RadioData
+	radioData chan scanner.DataPoint
 
 	outputDir    string
 	outputFormat string
 	traceFile    io.WriteCloser
 }
 
-func NewApp(ui UI, outputDir, outputFormat string) *App {
-	return &App{
+func NewApp(ctx context.Context, ui UI, pei radio.PEI, outputDir, outputFormat string, scanInterval, scanTimeout time.Duration) (*App, error) {
+	result := &App{
 		ui:           ui,
 		do:           make(chan func() error),
-		radioData:    make(chan RadioData, 1),
+		radioData:    make(chan scanner.DataPoint, 1),
 		outputDir:    outputDir,
 		outputFormat: strings.ToLower(outputFormat),
 		traceFile:    nil,
 	}
+
+	radioLog := func(format string, args ...any) {
+		timestamp := fmt.Sprintf("[%s] ", time.Now().Format(time.TimeOnly))
+		ui.Send(fmt.Sprintf(timestamp+format, args...))
+	}
+	loop := scanner.NewScanLoop(scanInterval, scanTimeout, result.radioData, radioLog)
+
+	radio, err := radio.Open(ctx, pei, nil)
+	if err != nil {
+		return nil, fmt.Errorf("cannot setup radio: %v", err)
+	}
+	radio.OnDisconnect(func() {
+		ui.Send(ConnectionClosed{})
+	})
+	radio.RunLoop(loop.Run)
+	result.radio = radio
+
+	return result, nil
 }
 
 func (a *App) Start(ctx context.Context) {
 	go func() {
 		defer a.stopTrace()
+		defer func() {
+			fmt.Println("Closing radio connection...")
+			a.radio.Close()
+		}()
 
 		a.ui.Send(a)
 		for {
@@ -60,15 +82,11 @@ func (a *App) Start(ctx context.Context) {
 					a.ui.Send(err)
 				}
 			case rd := <-a.radioData:
-				a.traceRadioData(rd)
-				a.ui.Send(rd)
+				a.traceRadioData(RadioData(rd))
+				a.ui.Send(RadioData(rd))
 			}
 		}
 	}()
-}
-
-func (a *App) RadioData() chan<- RadioData {
-	return a.radioData
 }
 
 func (a *App) Do(f func() error) {
