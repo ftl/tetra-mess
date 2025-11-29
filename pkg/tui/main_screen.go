@@ -119,9 +119,6 @@ func (s MainScreen) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch {
 	case key.Matches(msg, s.keyMap.ToggleTrace):
 		return s, s.app.ToggleTrace
-	case key.Matches(msg, s.keyMap.Help):
-		s.help.ShowAll = !s.help.ShowAll
-		return s, nil
 	case key.Matches(msg, s.keyMap.Quit):
 		return s, tea.Quit
 	default:
