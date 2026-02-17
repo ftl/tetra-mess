@@ -12,10 +12,12 @@ require (
 	github.com/charmbracelet/lipgloss v1.1.0
 	github.com/ftl/tetra-cli v1.1.0
 	github.com/ftl/tetra-pei v1.4.3
+	github.com/golang/geo v0.0.0-20180826223333-635502111454
 	github.com/im7mortal/UTM v1.4.0
 	github.com/spf13/cobra v1.9.1
 	github.com/tkrajina/gpxgo v1.4.0
 	github.com/twpayne/go-kml/v3 v3.3.0
+	github.com/tzneal/coordconv v0.1.2
 )
 
 require (

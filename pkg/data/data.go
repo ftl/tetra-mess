@@ -4,9 +4,11 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
+	"strconv"
 	"time"
 
-	"github.com/im7mortal/UTM"
+	"github.com/golang/geo/s2"
+	"github.com/tzneal/coordconv"
 )
 
 const NoSignal = 99
@@ -67,51 +69,60 @@ func (dp DataPoint) UTMField() UTMField {
 }
 
 type UTMField struct {
-	East   float64
-	North  float64
 	Zone   int
 	Letter string
+	Square string
+	East   int
+	North  int
 }
 
 func NewUTMField(lat float64, lon float64) UTMField {
-	east, north, zone, letter, err := UTM.FromLatLon(lat, lon, false)
+	mgrs, err := coordconv.DefaultMGRSConverter.ConvertFromGeodetic(s2.LatLngFromDegrees(lat, lon), 5)
 	if err != nil {
-		panic(fmt.Sprintf("Error converting lat/lon to UTM: %v", err))
+		panic(fmt.Sprintf("Error converting lat/lon to MGRS: %v", err))
 	}
 
+	zone, _ := strconv.Atoi(mgrs[0:2])
+	letter := string(mgrs[2])
+	square := string(mgrs[3:5])
+	east, _ := strconv.Atoi(string(mgrs[5:10]))
+	north, _ := strconv.Atoi(string(mgrs[10:]))
+
 	return UTMField{
-		East:   east,
-		North:  north,
 		Zone:   zone,
 		Letter: letter,
+		Square: square,
+		East:   east,
+		North:  north,
 	}
 }
 
 func (f UTMField) String() string {
-	return fmt.Sprintf("%d%s %06.0f %06.0f", f.Zone, f.Letter, f.East, f.North)
+	return fmt.Sprintf("%d%s %s %05d %05d", f.Zone, f.Letter, f.Square, f.East, f.North)
 }
 
 func (f UTMField) FieldID() string {
-	east100 := fmt.Sprintf("%06.0f", f.East)[:4]
-	north100 := fmt.Sprintf("%07.0f", f.North)[:5]
-	return fmt.Sprintf("%d%s %s %s", f.Zone, f.Letter, east100, north100)
+	east100 := f.East / 10
+	north100 := f.North / 10
+	return fmt.Sprintf("%d%s %s %04d %04d", f.Zone, f.Letter, f.Square, east100, north100)
 }
 
 func (f UTMField) Area() (minLat float64, minLon float64, maxLat float64, maxLon float64) {
-	minEast := float64(int64(f.East/100) * 100)
-	minNorth := float64(int64(f.North/100) * 100)
-	minLat, minLon, err := UTM.ToLatLon(minEast, minNorth, f.Zone, f.Letter)
+	minEast := (f.East / 100) * 100
+	minNorth := (f.North / 100) * 100
+	minLatLon, err := coordconv.DefaultMGRSConverter.ConvertToGeodetic(fmt.Sprintf("%d%s%s%05d%05d", f.Zone, f.Letter, f.Square, minEast, minNorth))
 	if err != nil {
 		panic(fmt.Sprintf("Error converting UTM to min lat/lon: %v", err))
 	}
 
-	maxEast := float64(int64(f.East/100)*100) + 100
-	maxNorth := float64(int64(f.North/100)*100) + 100
-	maxLat, maxLon, err = UTM.ToLatLon(maxEast, maxNorth, f.Zone, f.Letter)
+	maxEast := ((f.East / 10) * 10) + 10
+	maxNorth := ((f.North / 10) * 10) + 10
+	maxLatLon, err := coordconv.DefaultMGRSConverter.ConvertToGeodetic(fmt.Sprintf("%d%s%s%05d%05d", f.Zone, f.Letter, f.Square, maxEast, maxNorth))
 	if err != nil {
-		panic(fmt.Sprintf("Error converting UTM to max lat/lon: %v", err))
+		panic(fmt.Sprintf("Error converting UTM to min lat/lon: %v", err))
 	}
-	return
+
+	return float64(minLatLon.Lat), float64(minLatLon.Lng), float64(maxLatLon.Lat), float64(maxLatLon.Lng)
 }
 
 func RSSIToGAN(rssi int) int {
